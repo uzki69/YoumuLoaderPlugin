@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Template</title>
+</head>
+<body>
+    <div id="TemplateConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox">
+        <div data-role="content">
+            <div class="content-primary">
+                <form id="TemplateConfigForm">
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="DownloadPath">Download Path</label>
+                        <input id="DownloadPath" name="DownloadPath" type="text" is="emby-input" />
+                        <div class="fieldDescription">Where videos are downloaded</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="CookiesPath">Cookies Path</label>
+                        <input id="CookiesPath" name="CookiesPath" type="text" is="emby-input" />
+                        <div class="fieldDescription">Where youtube cookies are found</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="YtdlpPath">Yt-dlp Path</label>
+                        <input id="YtdlpPath" name="YtdlpPath" type="text" is="emby-input" />
+                        <div class="fieldDescription">Where yt-dlp are found</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="DenoPath">Deno Path</label>
+                        <input id="DenoPath" name="DenoPath" type="text" is="emby-input" />
+                        <div class="fieldDescription">Where Deno are found</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="YtdlpOptions">Yt-dlp Options</label>
+                        <input id="YtdlpOptions" name="YtdlpOptions" type="text" is="emby-input" />
+                        <div class="fieldDescription">Command that goes after yt-dlp binary</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="FileName">File name</label>
+                        <input id="FileName" name="FileName" type="text" is="emby-input" />
+                        <div class="fieldDescription">output file name for yt-dlp, only used when in a video</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="Playlist">Playlist</label>
+                        <input id="Playlist" name="Playlist" type="text" is="emby-input" />
+                        <div class="fieldDescription">output playlist for yt-dlp, only used when in a playlist</div>
+                    </div>
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                            <span>Save</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <script type="text/javascript">
+            var TemplateConfig = {
+                pluginUniqueId: '042c195f-1304-4672-9a61-2a0c1ca56d9b'
+            };
+
+            document.querySelector('#TemplateConfigPage')
+                .addEventListener('pageshow', function() {
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(TemplateConfig.pluginUniqueId).then(function (config) {
+                        document.querySelector('#DownloadPath').value = config.DownloadPath;
+                        document.querySelector('#CookiesPath').value = config.CookiesPath;
+                        document.querySelector('#YtdlpPath').value = config.YtdlpPath;
+                        document.querySelector('#YtdlpOptions').value = config.YtdlpOptions;
+                        document.querySelector('#FileName').value = config.FileName;
+                        document.querySelector('#Playlist').value = config.Playlist;
+                        document.querySelector('#DenoPath').value = config.DenoPath;
+                        Dashboard.hideLoadingMsg();
+                    });
+                });
+
+            document.querySelector('#TemplateConfigForm')
+                .addEventListener('submit', function(e) {
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(TemplateConfig.pluginUniqueId).then(function (config) {
+
+                    config.DownloadPath =  document.querySelector('#DownloadPath').value
+                    config.CookiesPath = document.querySelector('#CookiesPath').value
+                    config.YtdlpPath = document.querySelector('#YtdlpPath').value
+                    config.YtdlpOptions = document.querySelector('#YtdlpOptions').value
+                    config.FileName = document.querySelector('#FileName').value
+                    config.Playlist = document.querySelector('#Playlist').value
+                    config.DenoPath = document.querySelector('#DenoPath').value
+
+                    ApiClient.updatePluginConfiguration(TemplateConfig.pluginUniqueId, config).then(function (result) {
+                        Dashboard.processPluginConfigurationUpdateResult(result);
+                    });
+                });
+
+                e.preventDefault();
+                return false;
+            });
+        </script>
+    </div>
+</body>
+</html>

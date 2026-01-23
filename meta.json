@@ -1,0 +1,16 @@
+{
+        "name": "Youmu Loader",
+        "guid": "042c195f-1304-4672-9a61-2a0c1ca56d9b",
+        "version": "1.0.0.0",
+        "targetAbi": "10.11.0.0",
+        "framework": "net9.0",
+        "overview": "Download youtube videos",
+        "description": "Using youmu loader browser extension you can download video from youtube",
+        "category": "General",
+        "owner": "uzki69",
+        "changelog": "",
+        "timestamp": "0001-01-01T00:00:00.0000000Z",
+        "status": "Active",
+        "autoUpdate": false,
+        "assemblies": []
+}
