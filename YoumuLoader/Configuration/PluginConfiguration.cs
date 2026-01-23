@@ -17,7 +17,7 @@ public class PluginConfiguration : BasePluginConfiguration
         DenoPath = string.Empty;
         YtdlpPath = "yt-dlp";
         YtdlpOptions = "--ignore-errors --no-warnings --write-sub --all-subs";
-        FileName = "%(uploader)s/%(title)s/%(title)s.%(ext)s";
+        FileName = "%(uploader)s/%(title)s.%(ext)s";
         Playlist = "%(playlist)s/%(title)s S01E%(playlist_index)s.%(ext)s";
     }
 
