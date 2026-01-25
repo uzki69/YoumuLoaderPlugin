@@ -124,7 +124,7 @@ public class YoumuController : ControllerBase
 
         if (!string.IsNullOrEmpty(outFile))
         {
-            options += $"-o \"outFile\" ";
+            options += $"-o \"{outFile}\" ";
         }
 
         options += $"{config.YtdlpOptions} --js-runtimes deno:\"{config.DenoPath}\" \"{video}\"";
