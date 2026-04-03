@@ -43,9 +43,10 @@ public class YoumuController : ControllerBase
     /// </summary>
     /// <param name="video">video url.</param>
     /// <param name="audio">is audio.</param>
+    /// <param name="playlist">download as playlist.</param>
     /// <returns>status code.</returns>
     [HttpGet("download")]
-    public IActionResult YoumuDownload(string video, bool audio)
+    public IActionResult YoumuDownload(string video, bool audio, bool playlist)
     {
         LogInfo($"Accepted  Video: {video} Audio: {audio}");
 
@@ -112,7 +113,7 @@ public class YoumuController : ControllerBase
         var outFile = string.Empty;
         bool isPlaylist = false;
 
-        if (!string.IsNullOrEmpty(config.Playlist) && playlistRegex.IsMatch(video))
+        if (!string.IsNullOrEmpty(config.Playlist) && playlistRegex.IsMatch(video) && playlist)
         {
             outFile = config.Playlist;
             isPlaylist = true;
@@ -147,10 +148,12 @@ public class YoumuController : ControllerBase
         {
             #if DEBUG
             process.OutputDataReceived += (_, args) => LogInfo(args.Data);
-            process.ErrorDataReceived += (_, args) => LogDebug(args.Data);
             process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
             #endif
+
+            process.ErrorDataReceived += (_, args) => LogError(args.Data);
+            process.BeginErrorReadLine();
+
             process.WaitForExit();
             if (process.ExitCode != 0)
             {
