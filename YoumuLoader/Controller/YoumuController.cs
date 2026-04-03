@@ -48,7 +48,7 @@ public class YoumuController : ControllerBase
     [HttpGet("download")]
     public IActionResult YoumuDownload(string video, bool audio, bool playlist)
     {
-        LogInfo($"Accepted  Video: {video} Audio: {audio}");
+        LogInfo($"Accepted  Video: {video} Audio: {audio} Playlist: {playlist}");
 
         var config = Plugin.Instance?.Configuration;
 
