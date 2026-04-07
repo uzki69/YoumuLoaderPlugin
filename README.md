@@ -2,4 +2,5 @@ build project, put .dll and meta.json in a folder and put inside jellyfin plugin
 
 Only tested on linux/arch btw
 
-for now, this project has no extended sanitization, use at your own risk
+just to know, if you run a docker/podman container you should install deno and link deno, jellyfin ffmpeg and jellyfin ffprobe to /usr/bin so it can
+run yt-dlp just fine

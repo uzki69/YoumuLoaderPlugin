@@ -10,9 +10,14 @@
             <div class="content-primary">
                 <form id="TemplateConfigForm">
                     <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="DownloadPath">Download Path</label>
-                        <input id="DownloadPath" name="DownloadPath" type="text" is="emby-input" />
+                        <label class="inputLabel inputLabelUnfocused" for="VideoPath">Video Path</label>
+                        <input id="VideoPath" name="VideoPath" type="text" is="emby-input" />
                         <div class="fieldDescription">Where videos are downloaded</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="MusicPath">Music Path</label>
+                        <input id="MusicPath" name="MusicPath" type="text" is="emby-input" />
+                        <div class="fieldDescription">Where musics are downloaded</div>
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="CookiesPath">Cookies Path</label>
@@ -25,11 +30,6 @@
                         <div class="fieldDescription">Where yt-dlp are found</div>
                     </div>
                     <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="DenoPath">Deno Path</label>
-                        <input id="DenoPath" name="DenoPath" type="text" is="emby-input" />
-                        <div class="fieldDescription">Where Deno are found</div>
-                    </div>
-                    <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="YtdlpOptions">Yt-dlp Options</label>
                         <input id="YtdlpOptions" name="YtdlpOptions" type="text" is="emby-input" />
                         <div class="fieldDescription">Command that goes after yt-dlp binary</div>
@@ -37,7 +37,7 @@
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="FileName">File name</label>
                         <input id="FileName" name="FileName" type="text" is="emby-input" />
-                        <div class="fieldDescription">output file name for yt-dlp, only used when in a video</div>
+                        <div class="fieldDescription">output file name for yt-dlp, only used when in a video / music</div>
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="Playlist">Playlist</label>
@@ -61,13 +61,13 @@
                 .addEventListener('pageshow', function() {
                     Dashboard.showLoadingMsg();
                     ApiClient.getPluginConfiguration(TemplateConfig.pluginUniqueId).then(function (config) {
-                        document.querySelector('#DownloadPath').value = config.DownloadPath;
+                        document.querySelector('#VideoPath').value = config.VideoPath;
                         document.querySelector('#CookiesPath').value = config.CookiesPath;
                         document.querySelector('#YtdlpPath').value = config.YtdlpPath;
                         document.querySelector('#YtdlpOptions').value = config.YtdlpOptions;
                         document.querySelector('#FileName').value = config.FileName;
                         document.querySelector('#Playlist').value = config.Playlist;
-                        document.querySelector('#DenoPath').value = config.DenoPath;
+                        document.querySelector('#MusicPath').value = config.MusicPath;
                         Dashboard.hideLoadingMsg();
                     });
                 });
@@ -77,13 +77,13 @@
                 Dashboard.showLoadingMsg();
                 ApiClient.getPluginConfiguration(TemplateConfig.pluginUniqueId).then(function (config) {
 
-                    config.DownloadPath =  document.querySelector('#DownloadPath').value
+                    config.VideoPath =  document.querySelector('#VideoPath').value
                     config.CookiesPath = document.querySelector('#CookiesPath').value
                     config.YtdlpPath = document.querySelector('#YtdlpPath').value
                     config.YtdlpOptions = document.querySelector('#YtdlpOptions').value
                     config.FileName = document.querySelector('#FileName').value
                     config.Playlist = document.querySelector('#Playlist').value
-                    config.DenoPath = document.querySelector('#DenoPath').value
+                    config.MusicPath = document.querySelector('#MusicPath').value
 
                     ApiClient.updatePluginConfiguration(TemplateConfig.pluginUniqueId, config).then(function (result) {
                         Dashboard.processPluginConfigurationUpdateResult(result);

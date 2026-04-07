@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection.Metadata;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using ICU4N.Text;
@@ -24,7 +25,7 @@ namespace YoumuLoader.Controller;
 [ApiController]
 [Authorize(Roles = "Administrator")]
 [Route("youmu")]
-public class YoumuController : ControllerBase
+public class YoumuController : ControllerBase // TODO: Task to update ytdlp
 {
     private readonly ILogger<YoumuController> _logger;
 
@@ -46,7 +47,7 @@ public class YoumuController : ControllerBase
     /// <param name="playlist">download as playlist.</param>
     /// <returns>status code.</returns>
     [HttpGet("download")]
-    public IActionResult YoumuDownload(string video, bool audio, bool playlist)
+    public IActionResult YoumuDownload(string video, bool audio, bool playlist) // I know this code looks ugly but IDK
     {
         LogInfo($"Accepted  Video: {video} Audio: {audio} Playlist: {playlist}");
 
@@ -70,15 +71,28 @@ public class YoumuController : ControllerBase
             return InternalServerError();
         }
 
-        if (string.IsNullOrEmpty(config.DownloadPath))
+        if (string.IsNullOrEmpty(config.VideoPath) && !audio)
         {
-            LogError("Download path was empty");
+            LogError("Video path was empty");
             return InternalServerError();
         }
 
-        if (!System.IO.Directory.CreateDirectory(config.DownloadPath).Exists)
+        if (string.IsNullOrEmpty(config.MusicPath) && audio)
         {
-            LogError("Download directory could not be created");
+            LogError("Music path was empty");
+            return InternalServerError();
+        }
+
+        if (!System.IO.Directory.CreateDirectory(config.VideoPath).Exists)
+        {
+            LogError("Video directory could not be created");
+            return InternalServerError();
+        }
+
+        if (!System.IO.Directory.CreateDirectory(config.MusicPath).Exists)
+        {
+            LogError("Music directory could not be created");
+            return InternalServerError();
         }
 
         var options = string.Empty;
@@ -87,7 +101,7 @@ public class YoumuController : ControllerBase
         {
             if (System.IO.File.Exists(config.CookiesPath))
             {
-                options += $"--cookies \"{config.CookiesPath}\" ";
+                options += $"--cookies {config.CookiesPath} ";
             }
             else
             {
@@ -123,31 +137,33 @@ public class YoumuController : ControllerBase
             outFile = config.FileName;
         }
 
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = config.YtdlpPath,
+            WorkingDirectory = audio ? config.MusicPath : config.VideoPath,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false
+        };
+
         if (!string.IsNullOrEmpty(outFile))
         {
-            options += $"-o \"{outFile}\" ";
+            startInfo.ArgumentList.Add("-o");
+            startInfo.ArgumentList.Add(outFile);
         }
 
-        options += $"{config.YtdlpOptions} --js-runtimes deno:\"{config.DenoPath}\" \"{video}\"";
+        options += $"{config.YtdlpOptions} {video}";
+        ParseArgs(startInfo, options);
 
-        var startInfo = new ProcessStartInfo();
-
-        startInfo.Arguments = options;
-        startInfo.FileName = config.YtdlpPath;
-        startInfo.WorkingDirectory = config.DownloadPath;
-        startInfo.CreateNoWindow = true;
-        startInfo.RedirectStandardOutput = true;
-        startInfo.RedirectStandardError = true;
-        startInfo.UseShellExecute = false;
-
-        LogInfo($"Executing: {startInfo.FileName} {startInfo.Arguments}");
+        LogInfo($"Executing: {startInfo.FileName} {string.Join(" ", startInfo.ArgumentList)}");
 
         var process = Process.Start(startInfo);
 
         if (process != null)
         {
             #if DEBUG
-            process.OutputDataReceived += (_, args) => LogInfo(args.Data);
+            process.OutputDataReceived += (_, args) => LogDebug(args.Data);
             process.BeginOutputReadLine();
             #endif
 
@@ -157,11 +173,47 @@ public class YoumuController : ControllerBase
             process.WaitForExit();
             if (process.ExitCode != 0)
             {
-                LogError("Yt-dlp exit in failure");
+                LogError("Yt-dlp exit in failure trying download video");
                 return InternalServerError();
             }
 
             LogInfo(isPlaylist ? "Playlist" : "Video" + $" Downloaded: {video}");
+
+            if (isPlaylist && !string.IsNullOrEmpty(outFile))
+            {
+                options = $"--cookies {config.CookiesPath} --playlist-items 1 --write-thumbnail --convert-thumbnails jpg --skip-download -o %(playlist)s/cover {video}";
+
+                var thumb_startinfo = new ProcessStartInfo
+                {
+                    FileName = config.YtdlpPath,
+                    WorkingDirectory = audio ? config.MusicPath : config.VideoPath,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false
+                };
+
+                ParseArgs(thumb_startinfo, options);
+
+                LogInfo($"Executing thumb download: {thumb_startinfo.FileName} {string.Join(" ", thumb_startinfo.ArgumentList)}");
+
+                var processThumbDownload = Process.Start(thumb_startinfo);
+
+                if (processThumbDownload == null)
+                {
+                    return InternalServerError();
+                }
+
+                processThumbDownload.ErrorDataReceived += (_, args) => LogError(args.Data);
+                processThumbDownload.BeginErrorReadLine();
+
+                processThumbDownload.WaitForExit();
+                if (processThumbDownload.ExitCode != 0)
+                {
+                    LogError("yt-dlp exit in failure trying download the thumbnail");
+                }
+            }
+
             return Ok();
         }
 
@@ -194,6 +246,14 @@ public class YoumuController : ControllerBase
         if (!string.IsNullOrEmpty(message))
         {
         _logger.LogDebug("{Message}", message);
+        }
+    }
+
+    private static void ParseArgs(ProcessStartInfo startInfo, string args)
+    {
+        foreach (var arg in args.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            startInfo.ArgumentList.Add(arg);
         }
     }
 }

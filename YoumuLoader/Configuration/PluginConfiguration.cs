@@ -12,9 +12,9 @@ public class PluginConfiguration : BasePluginConfiguration
     /// </summary>
     public PluginConfiguration()
     {
-        DownloadPath = string.Empty;
+        VideoPath = string.Empty;
+        MusicPath = string.Empty;
         CookiesPath = string.Empty;
-        DenoPath = string.Empty;
         YtdlpPath = "yt-dlp";
         YtdlpOptions = "--ignore-errors --no-warnings --write-sub --all-subs";
         FileName = "%(uploader)s/%(title)s.%(ext)s";
@@ -24,7 +24,7 @@ public class PluginConfiguration : BasePluginConfiguration
     /// <summary>
     /// Gets or sets a value for the download location.
     /// </summary>
-    public string DownloadPath { get; set; }
+    public string VideoPath { get; set; }
 
     /// <summary>
     /// Gets or sets a value for the cookies path.
@@ -52,7 +52,7 @@ public class PluginConfiguration : BasePluginConfiguration
     public string Playlist { get; set; }
 
     /// <summary>
-    /// Gets or sets a value for Deno binary path.
+    /// Gets or sets a value for downloaded musics path.
     /// </summary>
-    public string DenoPath { get; set; }
+    public string MusicPath { get; set; }
 }
