@@ -124,7 +124,7 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
 
         var playlistRegex = PlaylistRegex();
 
-        var outFile = string.Empty;
+        var outFile = config.FileName;
         bool isPlaylist = false;
         var youtube_url = video;
 
@@ -139,10 +139,6 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
             {
                 youtube_url = video.Split("&list=")[0];
             }
-        }
-        else if (!string.IsNullOrEmpty(config.FileName))
-        {
-            outFile = config.FileName;
         }
 
         var startInfo = new ProcessStartInfo
