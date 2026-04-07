@@ -16,7 +16,7 @@ public class PluginConfiguration : BasePluginConfiguration
         MusicPath = string.Empty;
         CookiesPath = string.Empty;
         YtdlpPath = "yt-dlp";
-        YtdlpOptions = "--ignore-errors --no-warnings --write-sub --all-subs";
+        YtdlpOptions = "--write-sub --all-subs";
         FileName = "%(uploader)s/%(title)s.%(ext)s";
         Playlist = "%(playlist)s/%(title)s S01E%(playlist_index)s.%(ext)s";
     }
