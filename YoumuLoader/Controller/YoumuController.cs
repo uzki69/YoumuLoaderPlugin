@@ -25,7 +25,7 @@ namespace YoumuLoader.Controller;
 [ApiController]
 [Authorize(Roles = "Administrator")]
 [Route("youmu")]
-public class YoumuController : ControllerBase // TODO: Task to update ytdlp
+public partial class YoumuController : ControllerBase // TODO: Task to update ytdlp
 {
     private readonly ILogger<YoumuController> _logger;
 
@@ -47,7 +47,7 @@ public class YoumuController : ControllerBase // TODO: Task to update ytdlp
     /// <param name="playlist">download as playlist.</param>
     /// <returns>status code.</returns>
     [HttpGet("download")]
-    public IActionResult YoumuDownload(string video, bool audio, bool playlist) // I know this code looks ugly but IDK
+    public IActionResult YoumuDownload(string video, bool audio, bool playlist) // I know this code looks ugly but I'm lazy
     {
         LogInfo($"Accepted  Video: {video} Audio: {audio} Playlist: {playlist}");
 
@@ -114,7 +114,7 @@ public class YoumuController : ControllerBase // TODO: Task to update ytdlp
             options += "--extract-audio ";
         }
 
-        var ytRegex = new Regex("^https://www\\.youtube\\.com/");
+        var ytRegex = YtRegex();
 
         if (string.IsNullOrEmpty(video) || !ytRegex.IsMatch(video) )
         {
@@ -122,15 +122,23 @@ public class YoumuController : ControllerBase // TODO: Task to update ytdlp
             return BadRequest();
         }
 
-        var playlistRegex = new Regex("list=");
+        var playlistRegex = PlaylistRegex();
 
         var outFile = string.Empty;
         bool isPlaylist = false;
+        var youtube_url = video;
 
-        if (!string.IsNullOrEmpty(config.Playlist) && playlistRegex.IsMatch(video) && playlist)
+        if (!string.IsNullOrEmpty(config.Playlist) && playlistRegex.IsMatch(video))
         {
-            outFile = config.Playlist;
-            isPlaylist = true;
+            if (playlist)
+            {
+                outFile = config.Playlist;
+                isPlaylist = true;
+            }
+            else
+            {
+                youtube_url = video.Split("&list=")[0];
+            }
         }
         else if (!string.IsNullOrEmpty(config.FileName))
         {
@@ -153,7 +161,7 @@ public class YoumuController : ControllerBase // TODO: Task to update ytdlp
             startInfo.ArgumentList.Add(outFile);
         }
 
-        options += $"{config.YtdlpOptions} {video}";
+        options += $"{config.YtdlpOptions} {youtube_url}";
         ParseArgs(startInfo, options);
 
         LogInfo($"Executing: {startInfo.FileName} {string.Join(" ", startInfo.ArgumentList)}");
@@ -177,11 +185,11 @@ public class YoumuController : ControllerBase // TODO: Task to update ytdlp
                 return InternalServerError();
             }
 
-            LogInfo(isPlaylist ? "Playlist" : "Video" + $" Downloaded: {video}");
+            LogInfo(isPlaylist ? "Playlist" : "Video" + $" Downloaded: {youtube_url}");
 
-            if (isPlaylist && !string.IsNullOrEmpty(outFile))
+            if (isPlaylist && !string.IsNullOrEmpty(outFile) && !string.IsNullOrEmpty(config.CookiesPath))
             {
-                options = $"--cookies {config.CookiesPath} --playlist-items 1 --write-thumbnail --convert-thumbnails jpg --skip-download -o %(playlist)s/cover {video}";
+                options = $"--cookies {config.CookiesPath} --playlist-items 1 --write-thumbnail --convert-thumbnails jpg --skip-download -o %(playlist)s/cover {youtube_url}";
 
                 var thumb_startinfo = new ProcessStartInfo
                 {
@@ -256,4 +264,10 @@ public class YoumuController : ControllerBase // TODO: Task to update ytdlp
             startInfo.ArgumentList.Add(arg);
         }
     }
+
+    [GeneratedRegex("^(http.://www\\.youtube\\.com/|http.://m\\.youtube\\.com/)")]
+    private static partial Regex YtRegex();
+
+    [GeneratedRegex("list=")]
+    private static partial Regex PlaylistRegex();
 }
