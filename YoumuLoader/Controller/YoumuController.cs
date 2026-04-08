@@ -132,7 +132,15 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
         {
             if (playlist)
             {
+                if (YoutubeAlbumRegex().IsMatch(video) && !string.IsNullOrEmpty(config.Album))
+                {
+                    outFile = config.Album;
+                }
+                else
+                {
                 outFile = config.Playlist;
+                }
+
                 isPlaylist = true;
             }
             else
@@ -270,4 +278,7 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
 
     [GeneratedRegex("list=")]
     private static partial Regex PlaylistRegex();
+
+    [GeneratedRegex("list=OLAK5uy")]
+    private static partial Regex YoutubeAlbumRegex();
 }

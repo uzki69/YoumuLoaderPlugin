@@ -49,6 +49,11 @@
                         <input id="Thumbnail" name="Thumbnail" type="text" is="emby-input" />
                         <div class="fieldDescription">output directory for thumb, only used when is playlist</div>
                     </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="Album">Album</label>
+                        <input id="Album" name="Album" type="text" is="emby-input" />
+                        <div class="fieldDescription">output directory for Album, only used when is an album created by yt</div>
+                    </div>
                     <div>
                         <button is="emby-button" type="submit" class="raised button-submit block emby-button">
                             <span>Save</span>
@@ -74,6 +79,7 @@
                         document.querySelector('#Playlist').value = config.Playlist;
                         document.querySelector('#MusicPath').value = config.MusicPath;
                         document.querySelector('#Thumbnail').value = config.Thumbnail;
+                        document.querySelector('#Album').value = config.Album;
                         Dashboard.hideLoadingMsg();
                     });
                 });
@@ -91,6 +97,7 @@
                     config.Playlist = document.querySelector('#Playlist').value
                     config.MusicPath = document.querySelector('#MusicPath').value
                     config.Thumbnail = document.querySelector('#Thumbnail').value
+                    config.Album = document.querySelector('#Album').value
 
                     ApiClient.updatePluginConfiguration(TemplateConfig.pluginUniqueId, config).then(function (result) {
                         Dashboard.processPluginConfigurationUpdateResult(result);

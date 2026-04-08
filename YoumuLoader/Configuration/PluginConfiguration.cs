@@ -20,6 +20,7 @@ public class PluginConfiguration : BasePluginConfiguration
         FileName = "%(uploader)s/%(title)s.%(ext)s";
         Playlist = "%(playlist_uploader)s/%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s";
         Thumbnail = "%(playlist_uploader)s/%(playlist)s/cover";
+        Album = "%(artist)s/%(album)s/%(track_number)s - %(track)s.%(ext)s";
     }
 
     /// <summary>
@@ -61,4 +62,9 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Gets or sets a value for Thumbnail path.
     /// </summary>
     public string Thumbnail { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value for Album path.
+    /// </summary>
+    public string Album { get; set; }
 }
