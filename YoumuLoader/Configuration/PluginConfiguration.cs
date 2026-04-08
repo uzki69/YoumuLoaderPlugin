@@ -18,9 +18,8 @@ public class PluginConfiguration : BasePluginConfiguration
         YtdlpPath = "yt-dlp";
         YtdlpOptions = "--write-sub --all-subs";
         FileName = "%(uploader)s/%(title)s.%(ext)s";
-        Playlist = "%(playlist_uploader)s/%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s";
-        Thumbnail = "%(playlist_uploader)s/%(playlist)s/cover";
-        Album = "%(artist,uploader)s/%(album,playlist)s/%(track_number,playlist_index)s - %(track,title)s.%(ext)s";
+        Playlist = "%(artist,playlist_uploader)s/%(album,playlist)s/%(track_number,playlist_index)s - %(track,title)s.%(ext)s";
+        Thumbnail = "%(artist,playlist_uploader)s/%(album,playlist)s/cover";
     }
 
     /// <summary>
@@ -62,9 +61,4 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Gets or sets a value for Thumbnail path.
     /// </summary>
     public string Thumbnail { get; set; }
-
-    /// <summary>
-    /// Gets or sets a value for Album path.
-    /// </summary>
-    public string Album { get; set; }
 }
