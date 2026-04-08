@@ -47,7 +47,7 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
     /// <param name="playlist">download as playlist.</param>
     /// <returns>status code.</returns>
     [HttpGet("download")]
-    public IActionResult YoumuDownload(string video, bool audio, bool playlist) // I know this code looks ugly but I'm lazy
+    public async Task<IActionResult> YoumuDownload(string video, bool audio, bool playlist) // I know this code looks ugly but I'm lazy
     {
         LogInfo($"Accepted  Video: {video} Audio: {audio} Playlist: {playlist}");
 
@@ -116,7 +116,7 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
 
         var ytRegex = YtRegex();
 
-        if (string.IsNullOrEmpty(video) || !ytRegex.IsMatch(video) )
+        if (string.IsNullOrEmpty(video) || !ytRegex.IsMatch(video))
         {
             LogError($"Video could not pass: {video}");
             return BadRequest();
@@ -146,7 +146,9 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
             FileName = config.YtdlpPath,
             WorkingDirectory = audio ? config.MusicPath : config.VideoPath,
             CreateNoWindow = true,
+#if DEBUG
             RedirectStandardOutput = true,
+#endif
             RedirectStandardError = true,
             UseShellExecute = false
         };
@@ -174,7 +176,8 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
             process.ErrorDataReceived += (_, args) => LogError(args.Data);
             process.BeginErrorReadLine();
 
-            process.WaitForExit();
+            await process.WaitForExitAsync();
+
             if (process.ExitCode != 0)
             {
                 LogError("Yt-dlp exit in failure trying download video");
@@ -192,7 +195,9 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
                     FileName = config.YtdlpPath,
                     WorkingDirectory = audio ? config.MusicPath : config.VideoPath,
                     CreateNoWindow = true,
+                    #if DEBUG
                     RedirectStandardOutput = true,
+                    #endif
                     RedirectStandardError = true,
                     UseShellExecute = false
                 };
@@ -208,10 +213,16 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
                     return InternalServerError();
                 }
 
+                #if DEBUG
+                process.OutputDataReceived += (_, args) => LogDebug(args.Data);
+                process.BeginOutputReadLine();
+                #endif
+
                 processThumbDownload.ErrorDataReceived += (_, args) => LogError(args.Data);
                 processThumbDownload.BeginErrorReadLine();
 
-                processThumbDownload.WaitForExit();
+                await processThumbDownload.WaitForExitAsync();
+
                 if (processThumbDownload.ExitCode != 0)
                 {
                     LogError("yt-dlp exit in failure trying download the thumbnail");
@@ -233,7 +244,7 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
     {
         if (!string.IsNullOrEmpty(message))
         {
-        _logger.LogError("{Message}", message);
+            _logger.LogError("{Message}", message);
         }
     }
 
@@ -241,7 +252,7 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
     {
         if (!string.IsNullOrEmpty(message))
         {
-        _logger.LogInformation("{Message}", message);
+            _logger.LogInformation("{Message}", message);
         }
     }
 
@@ -249,7 +260,7 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
     {
         if (!string.IsNullOrEmpty(message))
         {
-        _logger.LogDebug("{Message}", message);
+            _logger.LogDebug("{Message}", message);
         }
     }
 
