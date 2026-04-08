@@ -265,7 +265,7 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
         }
     }
 
-    [GeneratedRegex("^(http.://www\\.youtube\\.com/|http.://m\\.youtube\\.com/)")]
+    [GeneratedRegex("^(http.://www\\.youtube\\.com/|http.://m\\.youtube\\.com/|http.://music\\.youtube\\.com/)")]
     private static partial Regex YtRegex();
 
     [GeneratedRegex("list=")]
