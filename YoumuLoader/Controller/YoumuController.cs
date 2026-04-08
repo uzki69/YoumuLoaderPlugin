@@ -176,7 +176,7 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
             process.ErrorDataReceived += (_, args) => LogError(args.Data);
             process.BeginErrorReadLine();
 
-            await process.WaitForExitAsync();
+            await process.WaitForExitAsync().ConfigureAwait(false);
 
             if (process.ExitCode != 0)
             {
@@ -221,7 +221,7 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
                 processThumbDownload.ErrorDataReceived += (_, args) => LogError(args.Data);
                 processThumbDownload.BeginErrorReadLine();
 
-                await processThumbDownload.WaitForExitAsync();
+                await processThumbDownload.WaitForExitAsync().ConfigureAwait(false);
 
                 if (processThumbDownload.ExitCode != 0)
                 {
