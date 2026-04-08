@@ -186,9 +186,9 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
 
             LogInfo(isPlaylist ? "Playlist" : "Video" + $" Downloaded: {youtube_url}");
 
-            if (isPlaylist && !string.IsNullOrEmpty(outFile) && !string.IsNullOrEmpty(config.CookiesPath))
+            if (isPlaylist && !string.IsNullOrEmpty(outFile) && !string.IsNullOrEmpty(config.CookiesPath) && !string.IsNullOrEmpty(config.Thumbnail))
             {
-                options = $"--cookies {config.CookiesPath} --playlist-items 1 --write-thumbnail --convert-thumbnails jpg --skip-download -o %(playlist)s/cover {youtube_url}";
+                options = $"--cookies {config.CookiesPath} --playlist-items 1 --write-thumbnail --convert-thumbnails jpg --skip-download -o {config.Thumbnail} {youtube_url}";
 
                 var thumb_startinfo = new ProcessStartInfo
                 {
