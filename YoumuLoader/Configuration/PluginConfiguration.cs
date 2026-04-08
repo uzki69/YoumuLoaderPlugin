@@ -18,7 +18,7 @@ public class PluginConfiguration : BasePluginConfiguration
         YtdlpPath = "yt-dlp";
         YtdlpOptions = "--write-sub --all-subs";
         FileName = "%(uploader)s/%(title)s.%(ext)s";
-        Playlist = "%(artist,playlist_uploader)s/%(album,playlist)s/%(track_number,playlist_index)s - %(track,title)s.%(ext)s";
+        Playlist = "%(artist,playlist_uploader)s/%(album,playlist)s/%(track_number,playlist_index)s. %(track,title)s.%(ext)s";
         Thumbnail = "%(artist,playlist_uploader)s/%(album,playlist)s/cover";
     }
 
