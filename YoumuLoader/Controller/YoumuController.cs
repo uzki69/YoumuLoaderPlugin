@@ -146,9 +146,7 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
             FileName = config.YtdlpPath,
             WorkingDirectory = audio ? config.MusicPath : config.VideoPath,
             CreateNoWindow = true,
-#if DEBUG
             RedirectStandardOutput = true,
-#endif
             RedirectStandardError = true,
             UseShellExecute = false
         };
@@ -168,12 +166,10 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
 
         if (process != null)
         {
-            #if DEBUG
             process.OutputDataReceived += (_, args) => LogDebug(args.Data);
-            process.BeginOutputReadLine();
-            #endif
-
             process.ErrorDataReceived += (_, args) => LogError(args.Data);
+
+            process.BeginOutputReadLine();
             process.BeginErrorReadLine();
 
             await process.WaitForExitAsync().ConfigureAwait(false);
@@ -195,9 +191,7 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
                     FileName = config.YtdlpPath,
                     WorkingDirectory = audio ? config.MusicPath : config.VideoPath,
                     CreateNoWindow = true,
-                    #if DEBUG
                     RedirectStandardOutput = true,
-                    #endif
                     RedirectStandardError = true,
                     UseShellExecute = false
                 };
@@ -213,12 +207,10 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
                     return InternalServerError();
                 }
 
-                #if DEBUG
-                process.OutputDataReceived += (_, args) => LogDebug(args.Data);
-                process.BeginOutputReadLine();
-                #endif
-
+                processThumbDownload.OutputDataReceived += (_, args) => LogDebug(args.Data);
                 processThumbDownload.ErrorDataReceived += (_, args) => LogError(args.Data);
+
+                process.BeginOutputReadLine();
                 processThumbDownload.BeginErrorReadLine();
 
                 await processThumbDownload.WaitForExitAsync().ConfigureAwait(false);
@@ -256,6 +248,7 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
         }
     }
 
+    [Conditional("DEBUG")]
     private void LogDebug(string? message)
     {
         if (!string.IsNullOrEmpty(message))
