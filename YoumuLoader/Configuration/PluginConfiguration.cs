@@ -20,7 +20,7 @@ public class PluginConfiguration : BasePluginConfiguration
         FileName = "%(uploader)s/%(title)s.%(ext)s";
         Playlist = "%(playlist_uploader)s/%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s";
         Thumbnail = "%(playlist_uploader)s/%(playlist)s/cover";
-        Album = "%(artist)s/%(album)s/%(track_number)s - %(track)s.%(ext)s";
+        Album = "%(artist,uploader)s/%(album,playlist)s/%(track_number,playlist_index)s - %(track,title)s.%(ext)s";
     }
 
     /// <summary>
