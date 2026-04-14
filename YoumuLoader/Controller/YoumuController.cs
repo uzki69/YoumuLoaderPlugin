@@ -1,21 +1,11 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Reflection.Metadata;
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using ICU4N.Text;
-using MediaBrowser.Controller.Configuration;
-using MediaBrowser.Controller.Library;
-using MediaBrowser.Model.IO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Logging;
+using YoumuLoader.Lib;
 
 namespace YoumuLoader.Controller;
 
@@ -27,6 +17,7 @@ namespace YoumuLoader.Controller;
 [Route("youmu")]
 public partial class YoumuController : ControllerBase // TODO: Task to update ytdlp
 {
+    private const int IsPlaylistFlag = 1;
     private readonly ILogger<YoumuController> _logger;
 
     /// <summary>
@@ -49,187 +40,112 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
     [HttpGet("download")]
     public async Task<IActionResult> YoumuDownload(string video, bool audio, bool playlist) // I know this code looks ugly but I'm lazy
     {
+        Options options = new Options();
+
         LogInfo($"Accepted  Video: {video} Audio: {audio} Playlist: {playlist}");
 
+        // check required configuration setup
         var config = Plugin.Instance?.Configuration;
-
-        if (config == null)
         {
-            LogError("Configuration was null");
-            return InternalServerError();
-        }
-
-        if (string.IsNullOrEmpty(config.YtdlpPath))
-        {
-            LogError("Yt-dlp path was null");
-            return InternalServerError();
-        }
-
-        if (!System.IO.File.Exists(config.YtdlpPath))
-        {
-            LogError("Yt-dlp file not found");
-            return InternalServerError();
-        }
-
-        if (string.IsNullOrEmpty(config.VideoPath) && !audio)
-        {
-            LogError("Video path was empty");
-            return InternalServerError();
-        }
-
-        if (string.IsNullOrEmpty(config.MusicPath) && audio)
-        {
-            LogError("Music path was empty");
-            return InternalServerError();
-        }
-
-        if (!System.IO.Directory.CreateDirectory(config.VideoPath).Exists)
-        {
-            LogError("Video directory could not be created");
-            return InternalServerError();
-        }
-
-        if (!System.IO.Directory.CreateDirectory(config.MusicPath).Exists)
-        {
-            LogError("Music directory could not be created");
-            return InternalServerError();
-        }
-
-        var options = string.Empty;
-
-        if (!string.IsNullOrEmpty(config.CookiesPath))
-        {
-            if (System.IO.File.Exists(config.CookiesPath))
+            var (err, status) = CheckNotNullAndRequiredConfiguration(config, video, audio, playlist);
+            if (err != null)
             {
-                options += $"--cookies {config.CookiesPath} ";
-            }
-            else
-            {
-                LogError("Cookie file does not exist");
+                LogError(err);
+                return HttpStatus(status);
             }
         }
 
-        if (audio == true)
+        // add options for downloading video/playlist/music
         {
-            options += "--extract-audio ";
-        }
-
-        var ytRegex = YtRegex();
-
-        if (string.IsNullOrEmpty(video) || !ytRegex.IsMatch(video))
-        {
-            LogError($"Video could not pass: {video}");
-            return BadRequest();
-        }
-
-        var playlistRegex = PlaylistRegex();
-
-        var outFile = config.FileName;
-        bool isPlaylist = false;
-        var youtube_url = video;
-
-        if (!string.IsNullOrEmpty(config.Playlist) && playlistRegex.IsMatch(video))
-        {
-            if (playlist)
+            var err = InitContentDownloadOptions(options, config!, video, audio, playlist);
+            if (err != null)
             {
-                outFile = config.Playlist;
-                isPlaylist = true;
-            }
-            else
-            {
-                youtube_url = video.Split("&list=")[0];
+                LogError(err);
+                return InternalServerError();
             }
         }
 
-        var startInfo = new ProcessStartInfo
+        // Download video
         {
-            FileName = config.YtdlpPath,
-            WorkingDirectory = audio ? config.MusicPath : config.VideoPath,
+            var startInfo = CreateProcessInfo(config!.YtdlpPath, audio ? config.MusicPath : config.VideoPath);
+
+            options.ParseOptionsToProcess(startInfo);
+
+            LogInfo($"Executing: {startInfo.FileName} {string.Join(" ", startInfo.ArgumentList)}");
+            await StartProcess(startInfo);
+            // Assuming yt url is last in options
+            LogInfo((options.Flag & IsPlaylistFlag) == IsPlaylistFlag ? "Playlist" : "Video" + $" Downloaded: {options.Peek()}");
+        }
+
+        // Download thumbnail
+        if ((options.Flag & IsPlaylistFlag) == IsPlaylistFlag && !string.IsNullOrEmpty(config.Thumbnail))
+        {
+            options.Flush();
+            {
+                var err = InitThumbnailDownloadOptions(options, config.CookiesPath, config.Thumbnail, video);
+                if (err != null)
+                {
+                    LogError(err);
+                    return InternalServerError();
+                }
+            }
+
+            var startInfo = CreateProcessInfo(config.YtdlpPath, audio ? config.MusicPath : config.VideoPath);
+            options.ParseOptionsToProcess(startInfo);
+            LogInfo($"Executing Downloading thumbnail process: {startInfo.FileName} {string.Join(" ", startInfo.ArgumentList)}");
+            await StartProcess(startInfo);
+            LogInfo("Thumbnail Downloaded");
+        }
+
+        return Ok();
+    }
+
+    private ProcessStartInfo CreateProcessInfo(string exePath, string pwd)
+    {
+        return new ProcessStartInfo
+        {
+            FileName = exePath,
+            WorkingDirectory = pwd,
             CreateNoWindow = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false
         };
+    }
 
-        if (!string.IsNullOrEmpty(outFile))
-        {
-            startInfo.ArgumentList.Add("-o");
-            startInfo.ArgumentList.Add(outFile);
-        }
-
-        options += $"{config.YtdlpOptions} {youtube_url}";
-        ParseArgs(startInfo, options);
-
-        LogInfo($"Executing: {startInfo.FileName} {string.Join(" ", startInfo.ArgumentList)}");
-
+    private async Task StartProcess(ProcessStartInfo startInfo)
+    {
         var process = Process.Start(startInfo);
 
-        if (process != null)
+        if (process == null)
         {
-            process.OutputDataReceived += (_, args) => LogDebug(args.Data);
-            process.ErrorDataReceived += (_, args) => LogError(args.Data);
-
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
-
-            await process.WaitForExitAsync().ConfigureAwait(false);
-
-            if (process.ExitCode != 0)
-            {
-                LogError("Yt-dlp exit in failure trying download video");
-                return InternalServerError();
-            }
-
-            LogInfo(isPlaylist ? "Playlist" : "Video" + $" Downloaded: {youtube_url}");
-
-            if (isPlaylist && !string.IsNullOrEmpty(outFile) && !string.IsNullOrEmpty(config.CookiesPath) && !string.IsNullOrEmpty(config.Thumbnail))
-            {
-                options = $"--cookies {config.CookiesPath} --playlist-items 1 --write-thumbnail --convert-thumbnails jpg --skip-download -o {config.Thumbnail} {youtube_url}";
-
-                var thumb_startinfo = new ProcessStartInfo
-                {
-                    FileName = config.YtdlpPath,
-                    WorkingDirectory = audio ? config.MusicPath : config.VideoPath,
-                    CreateNoWindow = true,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false
-                };
-
-                ParseArgs(thumb_startinfo, options);
-
-                LogInfo($"Executing thumb download: {thumb_startinfo.FileName} {string.Join(" ", thumb_startinfo.ArgumentList)}");
-
-                var processThumbDownload = Process.Start(thumb_startinfo);
-
-                if (processThumbDownload == null)
-                {
-                    return InternalServerError();
-                }
-
-                processThumbDownload.OutputDataReceived += (_, args) => LogDebug(args.Data);
-                processThumbDownload.ErrorDataReceived += (_, args) => LogError(args.Data);
-
-                process.BeginOutputReadLine();
-                processThumbDownload.BeginErrorReadLine();
-
-                await processThumbDownload.WaitForExitAsync().ConfigureAwait(false);
-
-                if (processThumbDownload.ExitCode != 0)
-                {
-                    LogError("yt-dlp exit in failure trying download the thumbnail");
-                }
-            }
-
-            return Ok();
+            LogError("could not start process");
+            return;
         }
 
-        return InternalServerError();
+        process.OutputDataReceived += (_, args) => LogDebug(args.Data);
+        process.ErrorDataReceived += (_, args) => LogError(args.Data);
+
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+
+        await process.WaitForExitAsync().ConfigureAwait(false);
+
+        if (process.ExitCode != 0)
+        {
+            LogError($"process of {startInfo.FileName} failed with exitcode: {process.ExitCode}");
+            return;
+        }
     }
 
     private StatusCodeResult InternalServerError()
     {
         return StatusCode(StatusCodes.Status500InternalServerError);
+    }
+
+    private StatusCodeResult HttpStatus(int code)
+    {
+        return StatusCode(code);
     }
 
     private void LogError(string? message)
@@ -257,12 +173,155 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
         }
     }
 
-    private static void ParseArgs(ProcessStartInfo startInfo, string args)
+    private static (string? ErrMessage, int Status) CheckNotNullAndRequiredConfiguration(Configuration.PluginConfiguration? config, string video, bool audio, bool playlist)
     {
-        foreach (var arg in args.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        static (string ErrMessage, int Code) ISError(string msg) => (msg, StatusCodes.Status500InternalServerError);
+        static (string ErrMessage, int Code) BRError(string msg) => (msg, StatusCodes.Status400BadRequest);
+
+        if (config == null)
         {
-            startInfo.ArgumentList.Add(arg);
+            return ISError("Configuration was null");
         }
+
+        if (string.IsNullOrEmpty(config.YtdlpPath))
+        {
+            return ISError("Yt-dlp path was null");
+        }
+
+        if (!System.IO.File.Exists(config.YtdlpPath))
+        {
+            return ISError("Yt-dlp file not found");
+        }
+
+        if (audio)
+        {
+            if (string.IsNullOrEmpty(config.MusicPath))
+            {
+                return ISError("Music path was empty");
+            }
+            else if (!System.IO.Directory.CreateDirectory(config.MusicPath).Exists)
+            {
+                return ISError("Music directory could not be created");
+            }
+        }
+        else if (string.IsNullOrEmpty(config.VideoPath))
+        {
+            return ISError("Video path was empty");
+        }
+        else if (!System.IO.Directory.CreateDirectory(config.VideoPath).Exists)
+        {
+            return ISError("Video directory could not be created");
+        }
+
+        if (playlist)
+        {
+            if (string.IsNullOrEmpty(config.Playlist))
+            {
+                ISError("playlist ytdlp outname not defined");
+            }
+        }
+        else
+        {
+            if (string.IsNullOrEmpty(config.FileName))
+            {
+                ISError("filename ytdlp outname not defined");
+            }
+        }
+
+        {
+            var response = VerifyIsValidLink(video);
+            if (response != null)
+            {
+                return BRError(response);
+            }
+        }
+
+        return (null, 0);
+    }
+
+    /// <summary>
+    /// Fill options.
+    /// </summary>
+    /// <param name="options">options.</param>
+    /// <param name="config">config.</param>
+    /// <param name="link">link.</param>
+    /// <param name="audio">is audio.</param>
+    /// <param name="playlist">playlist.</param>
+    /// <returns>error message.</returns>
+    private static string? InitContentDownloadOptions(Options options, Configuration.PluginConfiguration config, string link, bool audio, bool playlist)
+    {
+        string yt_url = link;
+
+        // cookies
+        {
+            var res = OptionsFillCookies(config.CookiesPath, options);
+            if (res != null)
+            {
+                return res;
+            }
+        }
+
+        // audio only
+        if (audio)
+        {
+            options.Add("--extract-audio");
+        }
+
+        // appending custom options
+        if (!string.IsNullOrEmpty(config.YtdlpOptions))
+        {
+            options.Add(config.YtdlpOptions);
+        }
+
+        // appending ytdlp outname
+        options.Add("-o");
+
+        if (PlaylistRegex().IsMatch(link))
+        {
+            if (playlist)
+            {
+                options.Add(config.Playlist);
+                options.Flag = IsPlaylistFlag;
+            }
+            else
+            {
+                yt_url = link.Split("&list=")[0];
+                options.Add(config.FileName);
+            }
+        }
+        else
+        {
+            options.Add(config.FileName);
+        }
+
+        // yt url
+        options.Add(yt_url);
+
+        return null;
+    }
+
+    private static string? InitThumbnailDownloadOptions(Options options, string? cookiesPath, string thumbnailOut, string link)
+    {
+        {
+            var res = OptionsFillCookies(cookiesPath, options);
+            if (res != null)
+            {
+                return res;
+            }
+        }
+
+        options.Add("--playlist-items 1", "--write-thumbnail", "--convert-thumbnails jpg", "--skip-download", "-o", thumbnailOut, link);
+        return null;
+    }
+
+    private static string? VerifyIsValidLink(string? link)
+    {
+        if (string.IsNullOrEmpty(link) || !YtRegex().IsMatch(link))
+        {
+            return $"Video does not match: {link}";
+        }
+
+        return null;
     }
 
     [GeneratedRegex("^(http.://www\\.youtube\\.com/|http.://m\\.youtube\\.com/|http.://music\\.youtube\\.com/)")]
@@ -270,4 +329,22 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
 
     [GeneratedRegex("list=")]
     private static partial Regex PlaylistRegex();
+
+    private static string? OptionsFillCookies(string? path, Options options)
+    {
+        if (!string.IsNullOrEmpty(path))
+        {
+            if (System.IO.File.Exists(path))
+            {
+                options.Add("--cookies");
+                options.Add(path);
+            }
+            else
+            {
+                return "Cookie file does not exist";
+            }
+        }
+
+        return null;
+    }
 }
