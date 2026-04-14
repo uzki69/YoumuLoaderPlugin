@@ -19,7 +19,7 @@ public class PluginConfiguration : BasePluginConfiguration
         YtdlpOptions = "--write-sub; --all-subs";
         FileName = "%(uploader)s/%(title)s.%(ext)s";
         Playlist = "%(playlist_uploader|.)s/%(album,playlist)s/%(track_number,playlist_index)s. %(track,title)s.%(ext)s";
-        Thumbnail = "%(playlist_uploader|.)s/%(album,playlist)s/cover";
+        Thumbnail = "%(playlist_uploader|.)s/%(playlist)s/cover"; // removes wrong album name replacing %(playlist) with %(playlist:8)
     }
 
     /// <summary>

@@ -310,7 +310,14 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
             }
         }
 
-        options.Add("--playlist-items", "0", "--write-thumbnail", "--convert-thumbnails", "jpg", "-o", "thumbnail:", "-o", thumbnailOut, link);
+        string fixedThumbOut = thumbnailOut;
+
+        if (PlaylistGeneratedRegex().IsMatch(link))
+        {
+            fixedThumbOut = thumbnailOut.Replace("%(playlist)s", "%(playlist.8:)s", System.StringComparison.CurrentCulture);
+        }
+
+        options.Add("--playlist-items", "0", "--write-thumbnail", "--convert-thumbnails", "jpg", "-o", "thumbnail:", "-o", fixedThumbOut, link);
         return null;
     }
 
@@ -329,6 +336,9 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
 
     [GeneratedRegex("list=")]
     private static partial Regex PlaylistRegex();
+
+    [GeneratedRegex("list=OLAK5uy")]
+    private static partial Regex PlaylistGeneratedRegex();
 
     private static string? OptionsFillCookies(string? path, Options options)
     {
