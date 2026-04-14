@@ -1,3 +1,7 @@
+## Why you should look at this code
+It has cool yt-dlp hacks ;)
+
+## Project building
 build project, put .dll and meta.json in a folder and put inside jellyfin plugins folder, idk how it works correctly but the folder name can be the plugin name + version example: YoumuLoader_1.0.0.0
 
 Dotnet 9.0 project

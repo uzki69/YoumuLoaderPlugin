@@ -72,7 +72,7 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
             options.ParseOptionsToProcess(startInfo);
 
             LogInfo($"Executing: {startInfo.FileName} {string.Join(" ", startInfo.ArgumentList)}");
-            await StartProcess(startInfo);
+            await StartProcess(startInfo).ConfigureAwait(false);
             // Assuming yt url is last in options
             LogInfo((options.Flag & IsPlaylistFlag) == IsPlaylistFlag ? "Playlist" : "Video" + $" Downloaded: {options.Peek()}");
         }
@@ -93,7 +93,7 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
             var startInfo = CreateProcessInfo(config.YtdlpPath, audio ? config.MusicPath : config.VideoPath);
             options.ParseOptionsToProcess(startInfo);
             LogInfo($"Executing Downloading thumbnail process: {startInfo.FileName} {string.Join(" ", startInfo.ArgumentList)}");
-            await StartProcess(startInfo);
+            await StartProcess(startInfo).ConfigureAwait(false);
             LogInfo("Thumbnail Downloaded");
         }
 
@@ -310,7 +310,7 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
             }
         }
 
-        options.Add("--playlist-items 1", "--write-thumbnail", "--convert-thumbnails jpg", "--skip-download", "-o", thumbnailOut, link);
+        options.Add("--playlist-items 0", "--write-thumbnail", "--convert-thumbnails jpg", "-o", "thumbnail:", "-o", thumbnailOut, link);
         return null;
     }
 
