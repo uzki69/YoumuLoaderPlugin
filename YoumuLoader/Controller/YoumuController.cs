@@ -74,11 +74,11 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
             LogInfo($"Executing: {startInfo.FileName} {string.Join(" ", startInfo.ArgumentList)}");
             await StartProcess(startInfo).ConfigureAwait(false);
             // Assuming yt url is last in options
-            LogInfo((options.Flag & IsPlaylistFlag) == IsPlaylistFlag ? "Playlist" : "Video" + $" Downloaded: {options.Peek()}");
+            LogInfo((options.Flags & IsPlaylistFlag) == IsPlaylistFlag ? "Playlist" : "Video" + $" Downloaded: {options.Peek()}");
         }
 
         // Download thumbnail
-        if ((options.Flag & IsPlaylistFlag) == IsPlaylistFlag && !string.IsNullOrEmpty(config.Thumbnail))
+        if ((options.Flags & IsPlaylistFlag) == IsPlaylistFlag && !string.IsNullOrEmpty(config.Thumbnail))
         {
             options.Flush();
             {
@@ -267,10 +267,10 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
             options.Add("--extract-audio");
         }
 
-        // appending custom options
+        // appending custom options separated by ;
         if (!string.IsNullOrEmpty(config.YtdlpOptions))
         {
-            options.Add(config.YtdlpOptions);
+            options.AddOptionsString(config.YtdlpOptions);
         }
 
         // appending ytdlp outname
@@ -281,7 +281,7 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
             if (playlist)
             {
                 options.Add(config.Playlist);
-                options.Flag = IsPlaylistFlag;
+                options.Flags |= IsPlaylistFlag;
             }
             else
             {
