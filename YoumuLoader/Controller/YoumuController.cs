@@ -310,7 +310,7 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
             }
         }
 
-        options.Add("--playlist-items 0", "--write-thumbnail", "--convert-thumbnails jpg", "-o", "thumbnail:", "-o", thumbnailOut, link);
+        options.Add("--playlist-items", "0", "--write-thumbnail", "--convert-thumbnails", "jpg", "-o", "thumbnail:", "-o", thumbnailOut, link);
         return null;
     }
 
