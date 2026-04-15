@@ -298,6 +298,11 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
         {
             if (playlist)
             {
+                if (PlaylistGeneratedRegex().IsMatch(link))
+                {
+                    options.Add("--no-embed-thumbnail");
+                }
+
                 if (audio)
                 {
                     // add track number
