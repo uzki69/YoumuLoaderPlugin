@@ -84,21 +84,36 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
         // Download thumbnail
         if ((options.Flags & IsPlaylistFlag) == IsPlaylistFlag && !string.IsNullOrEmpty(config.Thumbnail))
         {
-            options.Flush();
+            if (PlaylistGeneratedRegex().IsMatch(video))
             {
-                var err = await InitThumbnailDownloadOptions(options, config.CookiesPath, config.Thumbnail, video, $"{pwd}/{TempFile}").ConfigureAwait(false);
-                if (err != null)
-                {
-                    LogError(err);
-                    return InternalServerError();
-                }
+                // Get album name
+                options.Flush();
+                OptionsFillCookies(config.CookiesPath, options);
+
+                options.Add("--print-to-file", "pre_process:%(album)s", TempFile, "--skip-download", "--playlist-items", "1", video);
+                var startInfo = CreateProcessInfo(config.YtdlpPath, pwd);
+                options.ParseOptionsToProcess(startInfo);
+                LogInfo($"Writing album name in temp file: {startInfo.FileName} {string.Join(" ", startInfo.ArgumentList)}");
+                await StartProcess(startInfo).ConfigureAwait(false);
+                LogInfo("Writing file done");
             }
 
-            var startInfo = CreateProcessInfo(config.YtdlpPath, pwd);
-            options.ParseOptionsToProcess(startInfo);
-            LogInfo($"Executing downloading thumbnail process: {startInfo.FileName} {string.Join(" ", startInfo.ArgumentList)}");
-            await StartProcess(startInfo).ConfigureAwait(false);
-            LogInfo("Thumbnail downloaded");
+            options.Flush();
+
+            var err = await InitThumbnailDownloadOptions(options, config.CookiesPath, config.Thumbnail, video, $"{pwd}/{TempFile}").ConfigureAwait(false);
+            if (err != null)
+            {
+                LogError(err);
+                return InternalServerError();
+            }
+
+            {
+                var startInfo = CreateProcessInfo(config.YtdlpPath, pwd);
+                options.ParseOptionsToProcess(startInfo);
+                LogInfo($"Executing downloading thumbnail process: {startInfo.FileName} {string.Join(" ", startInfo.ArgumentList)}");
+                await StartProcess(startInfo).ConfigureAwait(false);
+                LogInfo("Thumbnail downloaded");
+            }
         }
 
         return Ok();
@@ -277,32 +292,29 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
             options.AddOptionsString(config.YtdlpOptions);
         }
 
-        // appending ytdlp outname
-        options.Add("-o");
-
         // maybe should just move it to parent and pass only if is really a playlist.
         if (PlaylistRegex().IsMatch(link))
         {
             if (playlist)
             {
-                options.Add(config.Playlist);
-
-                if (PlaylistGeneratedRegex().IsMatch(link))
+                if (audio)
                 {
-                    options.Add("--print-to-file", "%(album)s", TempFile);
+                    // add track number
+                    options.Add("--embed-metadata", "--parse-metadata", "%(track_number,playlist_index)s/%(playlist_count)s:%(meta_track)s");
                 }
 
+                options.Add("-o", config.Playlist);
                 options.Flags |= IsPlaylistFlag;
             }
             else
             {
                 yt_url = link.Split("&list=")[0];
-                options.Add(config.FileName);
+                options.Add("-o", config.FileName);
             }
         }
         else
         {
-            options.Add(config.FileName);
+            options.Add("-o", config.FileName);
         }
 
         // yt url
@@ -331,7 +343,7 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
             System.IO.File.Delete(tmpFilePath);
         }
 
-        options.Add("--playlist-items", "0", "--write-thumbnail", "--convert-thumbnails", "jpg", "-o", "thumbnail:", "-o", fixedThumbOut, link);
+        options.Add("--no-overwrites", "--playlist-items", "0", "--write-thumbnail", "--convert-thumbnails", "jpg", "-o", "thumbnail:", "-o", fixedThumbOut, link);
         return null;
     }
 
