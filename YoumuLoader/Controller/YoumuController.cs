@@ -317,6 +317,12 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
             options.Add("-o", config.FileName);
         }
 
+        if (audio && !playlist)
+        {
+            // Its important for audio files
+            options.Add("--embed-metadata");
+        }
+
         // yt url
         options.Add(yt_url);
 
