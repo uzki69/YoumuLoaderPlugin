@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -18,6 +19,7 @@ namespace YoumuLoader.Controller;
 public partial class YoumuController : ControllerBase // TODO: Task to update ytdlp
 {
     private const int IsPlaylistFlag = 1;
+    private const string TempFile = ".youmuloadertmp";
     private readonly ILogger<YoumuController> _logger;
 
     /// <summary>
@@ -41,7 +43,6 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
     public async Task<IActionResult> YoumuDownload(string video, bool audio, bool playlist) // I know this code looks ugly but I'm lazy
     {
         Options options = new Options();
-
         LogInfo($"Accepted  Video: {video} Audio: {audio} Playlist: {playlist}");
 
         // check required configuration setup
@@ -55,6 +56,9 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
             }
         }
 
+        // current working directory
+        string pwd = audio ? config!.MusicPath : config!.VideoPath;
+
         // add options for downloading video/playlist/music
         {
             var err = InitContentDownloadOptions(options, config!, video, audio, playlist);
@@ -67,7 +71,7 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
 
         // Download video
         {
-            var startInfo = CreateProcessInfo(config!.YtdlpPath, audio ? config.MusicPath : config.VideoPath);
+            var startInfo = CreateProcessInfo(config!.YtdlpPath, pwd);
 
             options.ParseOptionsToProcess(startInfo);
 
@@ -82,7 +86,7 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
         {
             options.Flush();
             {
-                var err = InitThumbnailDownloadOptions(options, config.CookiesPath, config.Thumbnail, video);
+                var err = await InitThumbnailDownloadOptions(options, config.CookiesPath, config.Thumbnail, video, $"{pwd}/{TempFile}").ConfigureAwait(false);
                 if (err != null)
                 {
                     LogError(err);
@@ -90,7 +94,7 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
                 }
             }
 
-            var startInfo = CreateProcessInfo(config.YtdlpPath, audio ? config.MusicPath : config.VideoPath);
+            var startInfo = CreateProcessInfo(config.YtdlpPath, pwd);
             options.ParseOptionsToProcess(startInfo);
             LogInfo($"Executing downloading thumbnail process: {startInfo.FileName} {string.Join(" ", startInfo.ArgumentList)}");
             await StartProcess(startInfo).ConfigureAwait(false);
@@ -276,11 +280,18 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
         // appending ytdlp outname
         options.Add("-o");
 
+        // maybe should just move it to parent and pass only if is really a playlist.
         if (PlaylistRegex().IsMatch(link))
         {
             if (playlist)
             {
                 options.Add(config.Playlist);
+
+                if (PlaylistGeneratedRegex().IsMatch(link))
+                {
+                    options.Add("--print-to-file", "%(album)s", TempFile);
+                }
+
                 options.Flags |= IsPlaylistFlag;
             }
             else
@@ -300,7 +311,7 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
         return null;
     }
 
-    private static string? InitThumbnailDownloadOptions(Options options, string? cookiesPath, string thumbnailOut, string link)
+    private static async Task<string?> InitThumbnailDownloadOptions(Options options, string? cookiesPath, string thumbnailOut, string link, string tmpFilePath)
     {
         {
             var res = OptionsFillCookies(cookiesPath, options);
@@ -314,7 +325,10 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
 
         if (PlaylistGeneratedRegex().IsMatch(link))
         {
-            fixedThumbOut = thumbnailOut.Replace("%(playlist)s", "%(playlist.8:)s", System.StringComparison.CurrentCulture);
+            var lines = await System.IO.File.ReadAllLinesAsync(tmpFilePath).ConfigureAwait(false); // read tmp file created by yt-dlp on playlist downloading
+            string name = lines.Last(); // last line should be the album name
+            fixedThumbOut = thumbnailOut.Replace("%(playlist)s", name, System.StringComparison.CurrentCulture);
+            System.IO.File.Delete(tmpFilePath);
         }
 
         options.Add("--playlist-items", "0", "--write-thumbnail", "--convert-thumbnails", "jpg", "-o", "thumbnail:", "-o", fixedThumbOut, link);
