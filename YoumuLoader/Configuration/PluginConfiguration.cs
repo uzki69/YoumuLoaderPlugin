@@ -15,7 +15,7 @@ public class PluginConfiguration : BasePluginConfiguration
         VideoPath = string.Empty;
         MusicPath = string.Empty;
         CookiesPath = string.Empty;
-        YtdlpPath = "yt-dlp";
+        YtdlpPath = "/usr/bin/yt-dlp";
         YtdlpOptions = "--write-sub; --all-subs; --no-overwrites; --embed-metadata; --embed-thumbnail";
         FileName = "%(uploader)s/%(album,title)s/%(title)s.%(ext)s";
         Playlist = "%(playlist_uploader|.)s/%(album,playlist)s/%(track_number,playlist_index)s. %(track,title)s.%(ext)s";

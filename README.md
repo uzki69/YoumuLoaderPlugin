@@ -8,6 +8,7 @@ Dotnet 9.0 project
 tested in dotnet 10.0.104
 
 Only tested on linux/arch btw
+(probably will work on windows)
 
 just to know, if you run a docker/podman container you should install deno and link deno, jellyfin ffmpeg and jellyfin ffprobe to /usr/bin so it can
 run yt-dlp just fine
