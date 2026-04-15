@@ -284,6 +284,7 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
         if (audio)
         {
             options.Add("--extract-audio");
+            options.Add("--convert-subs", "lrc");
         }
 
         // appending custom options separated by ;
