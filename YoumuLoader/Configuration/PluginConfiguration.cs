@@ -16,7 +16,7 @@ public class PluginConfiguration : BasePluginConfiguration
         MusicPath = string.Empty;
         CookiesPath = string.Empty;
         YtdlpPath = "/usr/bin/yt-dlp";
-        YtdlpOptions = "--write-sub; --all-subs; --no-overwrites; --embed-metadata; --embed-thumbnail";
+        YtdlpOptions = "--embed-subs; --all-subs; --no-overwrites; --embed-metadata; --embed-thumbnail";
         FileName = "%(uploader)s/%(album,title)s/%(title)s.%(ext)s";
         Playlist = "%(playlist_uploader|.)s/%(album,playlist)s/%(track_number,playlist_index)s. %(track,title)s.%(ext)s";
         Thumbnail = "%(playlist_uploader|.)s/%(playlist)s/cover"; // removes wrong album name replacing %(playlist) with the correct name
