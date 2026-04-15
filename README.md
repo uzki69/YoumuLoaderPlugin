@@ -1,6 +1,15 @@
 ## Why you should look at this code
 It has cool yt-dlp hacks ;)
 
+## Dependencies
+- dotnet 9.0
+- yt-dlp
+- ffmpeg
+- ffprobe
+
+## Needed extension
+- [Youmu Loader](https://github.com/uzki69/YoumuLoader) at [firefox](https://addons.mozilla.org/en-US/firefox/addon/youmuloader/)
+
 ## Project building
 build project, put .dll and meta.json in a folder and put inside jellyfin plugins folder, idk how it works correctly but the folder name can be the plugin name + version example: YoumuLoader_1.0.0.0
 
