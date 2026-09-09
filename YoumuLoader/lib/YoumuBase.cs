@@ -1,40 +1,43 @@
-using YoumuLoader.Lib;
-using Microsoft.Extensions.Logging;
-using System.Threading.Tasks;
+using System;
 using System.Diagnostics;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+
+namespace YoumuLoader.Lib;
+
 /// <summary>
-/// Abstract class for each resource option of ytdlp.
+/// Base class for each resource option of ytdlp.
 /// </summary>
-public abstract class YoumuBase {
+/// <remarks>
+/// Initializes a new instance of the <see cref="YoumuBase"/> class.
+/// </remarks>
+/// <param name="config">Instace of <see cref="YoumuBaseConfiguration"/> interface.</param>
+/// <param name="logger">Instace of <see cref="ILogger"/> interface.</param>
+public class YoumuBase(YoumuBaseConfiguration config, ILogger logger)
+{
+    /// <summary>
+    /// default logger.
+    /// </summary>
+    protected readonly ILogger _logger = logger;
 
     /// <summary>
     /// Options of the lib view.
     /// </summary>
-    protected YoumuBaseConfiguration _config;
-
-    /// <summary>
-    /// default logger.
-    /// </summary>
-    protected readonly ILogger _logger;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="YoumuBase"/> class.
-    /// </summary>
-    /// <param name="config">Instace of <see cref="YoumuBaseConfiguration"/> interface.</param>
-    /// <param name="logger">Instace of <see cref="ILogger"/> interface.</param>
-    public YoumuBase(YoumuBaseConfiguration config, ILogger logger)
-    {
-        _config = config;
-        _logger = logger;
-    }
+    protected readonly YoumuBaseConfiguration _config = config;
 
     /// <summary>
     /// Checks and starts the downloading.
     /// </summary>
-    public Task? download()
+    /// <returns>Task for downloading.</returns>
+    public Task? Download()
     {
-        if (!allChecks()) return null;
-        return downloadNow();
+        if (!AllChecks())
+        {
+            return null;
+        }
+
+        return DownloadNow();
     }
 
     /// <summary>
@@ -42,20 +45,22 @@ public abstract class YoumuBase {
     /// When implementing this function you probably
     /// should use: addCookies, addAudio, addOptions, addOutputName, addLink.
     /// </summary>
-    protected abstract Task downloadNow()
+    /// <returns>Task for downloading.</returns>
+    protected virtual async Task DownloadNow()
     {
-        addCookies();
-        addAudio();
-        addOptions();
-        addOutputName();
-        addLink();
-        StartProcess(_config);
+        AddCookies();
+        AddAudio();
+        AddOptions();
+        AddOutputName();
+        AddLink();
+        await StartProcess(_config).ConfigureAwait(false);
     }
 
     /// <summary>
-    /// Logs errors
+    /// Logs errors.
     /// </summary>
-    protected void LogError(string ?message)
+    /// <param name="message">message.</param>
+    protected void LogError(string? message)
     {
         if (!string.IsNullOrEmpty(message))
         {
@@ -66,7 +71,8 @@ public abstract class YoumuBase {
     /// <summary>
     /// Logs Info.
     /// </summary>
-    protected void LogInfo(string ?message)
+    /// <param name="message">message.</param>
+    protected void LogInfo(string? message)
     {
        if (!string.IsNullOrEmpty(message))
        {
@@ -77,8 +83,9 @@ public abstract class YoumuBase {
     /// <summary>
     /// Logs Debug info.
     /// </summary>
+    /// <param name="message">message.</param>
     [Conditional("DEBUG")]
-    protected void LogDebug(string ?message)
+    protected void LogDebug(string? message)
     {
         if (!string.IsNullOrEmpty(message))
         {
@@ -89,7 +96,8 @@ public abstract class YoumuBase {
     /// <summary>
     /// Logs Warnings.
     /// </summary>
-    protected void LogWarning(string ?message)
+    /// <param name="message">message.</param>
+    protected void LogWarning(string? message)
     {
         if (!string.IsNullOrEmpty(message))
         {
@@ -98,26 +106,28 @@ public abstract class YoumuBase {
     }
 
     /// <summary>
-    /// executes a process
+    /// executes a process.
     /// </summary>
-    /// <param name="configuration">Configuration for downloading</param>
-    /// <param name="stdout">if needs to read stdout in another manner</param>
-    protected async Task StartProcess(YoumuBaseConfiguration configuration,
-            DataReceivedEventHandler? stdout = null )
+    /// <param name="configuration">Configuration for downloading.</param>
+    /// <param name="stdout">if needs to read stdout in another manner.</param>
+    /// <returns>Task.</returns>
+    protected async Task StartProcess(
+        YoumuBaseConfiguration configuration,
+        DataReceivedEventHandler? stdout = null )
     {
-
-
         ProcessStartInfo info = new ProcessStartInfo
         {
-            FileName = configuration.executable,
-            WorkingDirectory = configuration.workingDir,
+            FileName = configuration.Executable,
+            WorkingDirectory = configuration.WorkingDir,
             CreateNoWindow = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false
         };
 
-        configuration.arguments?.ParseOptionsToProcess(info);
+        configuration.Arguments?.ParseOptionsToProcess(info);
+
+        LogInfo($"Starting process: {info.FileName} {string.Join(" ", info.ArgumentList)} on directory: {info.WorkingDirectory}");
 
         var process = Process.Start(info);
 
@@ -144,42 +154,46 @@ public abstract class YoumuBase {
             LogError($"process of {info.FileName} failed with exitcode: {process.ExitCode}");
             return;
         }
+
+        LogInfo($"Video Downloaded: {_config.Link}");
     }
 
-    private bool allChecks() {
-        if (string.IsNullOrEmpty(_config.executable))
+    private bool AllChecks()
+    {
+        if (string.IsNullOrEmpty(_config.Executable))
         {
             LogError("_config.executable was empty");
             return false;
         }
 
-        if (!_config.dynamic["no_directory"])
+        if (AttemptDict("no_directory") == null)
         {
-            if (string.IsNullOrEmpty(_config.workingDir))
+            if (string.IsNullOrEmpty(_config.WorkingDir))
             {
                 LogError("_config.workingDir was empty");
                 return false;
             }
         }
 
-        if (!_config.dynamic["no_link"])
+        if (AttemptDict("no_link") == null)
         {
-            if (string.IsNullOrEmpty(_config.link))
+            if (string.IsNullOrEmpty(_config.Link))
             {
                 LogError("_config.link was empty");
                 return false;
             }
         }
+
         return true;
     }
 
-
     /// <summary>
-    /// Add cookies to options
+    /// Add cookies to options.
     /// </summary>
-    protected void addCookies(string name = "cookies")
+    /// <param name="name">name.</param>
+    protected void AddCookies(string name = "cookies")
     {
-        string ?cookies = _config.dynamic[name];
+        string? cookies = AttemptDict(name);
         if (cookies == null)
         {
             LogInfo("No cookies available");
@@ -190,7 +204,7 @@ public abstract class YoumuBase {
         {
           if (System.IO.File.Exists(cookies))
           {
-            _config.arguments.Add("--cookies", cookies);
+            _config.Arguments.Add("--cookies", cookies);
           }
         }
         else
@@ -201,17 +215,18 @@ public abstract class YoumuBase {
     }
 
     /// <summary>
-    /// Add audio only to options
+    /// Add audio only to options.
     /// </summary>
-    /// <returns>true if it added</returns>
-    protected bool addAudio() {
-        if (_config.dynamic["as_audio"])
+    /// <returns>true if it added.</returns>
+    protected bool AddAudio()
+    {
+        if (AttemptDict("as_audio"))
         {
             // option to download as audio file
-            LogDebug($"as_audio == true, value: ${_config.dynamic["isAudio"]}");
-            _config.arguments.Add("--extract-audio");
-            _config.arguments.Add("--convert-subs", "lrc");
-            _config.arguments.Add("--embed-metadata");
+            LogDebug($"as_audio == true, value: ${AttemptDict("as_audio")}");
+            _config.Arguments.Add("--extract-audio");
+            _config.Arguments.Add("--convert-subs", "lrc");
+            _config.Arguments.Add("--embed-metadata");
             return true;
         }
 
@@ -219,38 +234,50 @@ public abstract class YoumuBase {
     }
 
     /// <summary>
-    /// Add options to _config.arguments
+    /// Add options to _config.arguments.
     /// </summary>
-    /// <param name="name">options name</param>
-    /// <returns>true if it added</returns>
-    protected bool addOptions(string name = "options") {
-        if (_config.dynamic[name] is string options) {
-            _config.arguments.AddOptionsString(options);
-            return true;
-        }
-        return false;
-    }
-
-    /// <summary>
-    /// Add output name to _config.arguments
-    /// </summary>
-    /// <param name="name">options name</param>
-    /// <returns>true if it added</returns>
-    protected bool addOutputName(string name = "output")
+    /// <param name="name">options name.</param>
+    /// <returns>true if it added.</returns>
+    protected bool AddOptions(string name = "options")
     {
-        if (_config.dynamic[name] is string output)
+        if (AttemptDict(name) is string options)
         {
-            _config.arguments.Add("-o", output);
+            _config.Arguments.AddOptionsString(options);
             return true;
         }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Add output name to _config.arguments.
+    /// </summary>
+    /// <param name="name">options name.</param>
+    /// <returns>true if it added.</returns>
+    protected bool AddOutputName(string name = "output")
+    {
+        if (AttemptDict(name) is string output)
+        {
+            _config.Arguments.Add("-o", output);
+            return true;
+        }
+
         return false;
     }
 
     /// <summary>
     /// Add link to _config.arguments.
     /// </summary>
-    protected void addLink()
+    protected void AddLink()
     {
-        _config.arguments.Add(_config.link);
+        _config.Arguments.Add(_config.Link);
+    }
+
+    /// <summary>
+    /// Attempt to get a value from dict.
+    /// </summary>
+    protected dynamic? AttemptDict(string key)
+    {
+      return _config.Dynamic.TryGetValue(key, out var v) ? v : null;
     }
 }

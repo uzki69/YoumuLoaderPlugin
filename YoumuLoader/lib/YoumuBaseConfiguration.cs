@@ -2,33 +2,33 @@ using System.Collections.Generic;
 
 namespace YoumuLoader.Lib;
 
-///<summary>
-///Basic Configuration
-///</summary>
+/// <summary>
+/// Basic Configuration.
+/// </summary>
 public class YoumuBaseConfiguration
 {
     /// <summary>
-    /// Working dir.
+    /// Gets or sets working dir, where files are downloaded.
     /// </summary>
-    public string workingDir = string.Empty;
-    /// <summary>
-    /// Executable path.
-    /// </summary>
-    public string executable = string.Empty;
+    public string WorkingDir { get; set; } = string.Empty;
 
     /// <summary>
-    /// yt-dlp used link
+    /// Gets or sets executable path.
     /// </summary>
-    public string link = string.Empty;
+    public string Executable { get; set; } = string.Empty;
 
     /// <summary>
-    /// executable args
+    /// Gets or sets yt-dlp used link.
     /// </summary>
-    public Options arguments = new Options();
+    public string Link { get; set; } = string.Empty;
 
     /// <summary>
-    /// dynamic configuration options
+    /// Gets or sets executable args.
     /// </summary>
-    public Dictionary<string, dynamic> dynamic = new Dictionary<string, dynamic>();
+    public Options Arguments { get; set; } = new Options();
+
+    /// <summary>
+    /// Gets dynamic configuration options.
+    /// </summary>
+    public Dictionary<string, dynamic> Dynamic { get; } = [];
 }
-

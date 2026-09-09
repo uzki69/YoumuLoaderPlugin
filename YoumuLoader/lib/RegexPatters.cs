@@ -3,9 +3,9 @@ using System.Text.RegularExpressions;
 namespace YoumuLoader.Lib;
 
 /// <summary>
-/// Generated regex class
+/// Generated regex class.
 /// </summary>
-public partial class YRegex
+public static partial class YRegex
 {
     [GeneratedRegex("^(http.://www\\.youtube\\.com/|http.://m\\.youtube\\.com/|http.://music\\.youtube\\.com/)")]
     public static partial Regex Youtube();

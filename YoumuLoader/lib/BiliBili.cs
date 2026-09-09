@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
 namespace YoumuLoader.Lib;
@@ -8,7 +9,7 @@ namespace YoumuLoader.Lib;
 public class BiliBili : YoumuBase
 {
     /// <summary>
-    /// Constructs base.
+    /// Initializes a new instance of the <see cref="YoumuBase"/> class.
     /// </summary>
     public BiliBili(YoumuBaseConfiguration config,  ILoggerFactory loggerFactory)
         : base(config, loggerFactory.CreateLogger<BiliBili>())
@@ -17,27 +18,28 @@ public class BiliBili : YoumuBase
     /// <summary>
     /// downloadNow implementation.
     /// </summary>
-    protected override async Task downloadNow()
+    /// <returns></returns>
+    protected override async Task DownloadNow()
     {
-        addCookies();
-        addAudio();
+        AddCookies();
+        AddAudio();
 
-        if (!addOptions("bb_options"))
+        if (!AddOptions("bb_options"))
         {
-            addOptions();
+            AddOptions();
         }
 
         // TODO: maybe create an function for that if's.
-        if (!addOutputName("bb_video_name"))
+        if (!AddOutputName("bb_video_name"))
         {
-            if (!addOutputName())
+            if (!AddOutputName())
             {
                 LogWarning("No video name specified");
             }
         }
 
-        addLink();
+        AddLink();
 
-        StartProcess(_config);
+        await StartProcess(_config).ConfigureAwait(false);
     }
 }

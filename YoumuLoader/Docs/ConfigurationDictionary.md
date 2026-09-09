@@ -5,6 +5,7 @@
 - options - default options.
 - as_playlist - download as a playlist when on a playlist
 - as_audio - download as audio file.
+- output - single output for ytdlp -o
 
 ## Youtube
 

@@ -1,53 +1,50 @@
-using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
-using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 
 namespace YoumuLoader.Lib;
 
 /// <summary>
-/// Youtube class
+/// Youtube class.
 /// </summary>
-public class Youtube : YoumuBase {
-
-    /// <summary>
-    /// constructor
-    /// </summary>
-    public Youtube(YoumuBaseConfiguration configuration, ILoggerFactory loggerFactory )
-        : base(configuration, loggerFactory.CreateLogger<Youtube>())
-    {}
-
+/// <remarks>
+/// constructor.
+/// </remarks>
+public class Youtube(YoumuBaseConfiguration configuration, ILoggerFactory loggerFactory) : YoumuBase(configuration, loggerFactory.CreateLogger<Youtube>())
+{
     private bool _isPlaylist = false;
 
     /// <summary>
-    /// downloads the youtube video
+    /// downloads the youtube video.
     /// </summary>
-    protected override async Task downloadNow()
+    /// <returns>Task.</returns>
+    protected override async Task DownloadNow()
     {
-        constructArgs();
+        ConstructArgs();
 
         // download video/playlist
         await StartProcess(_config).ConfigureAwait(false);
 
         // download thumbnail if playlist
-        if (_isPlaylist && _config.dynamic["yt_thumbnail_name"] is string thumbnailOutName)
+        if (_isPlaylist && AttemptDict("yt_thumbnail_name") is string thumbnailOutName)
         {
-            if (YRegex.YoutubeGeneratedPlaylist().IsMatch(_config.link))
+            if (YRegex.YoutubeGeneratedPlaylist().IsMatch(_config.Link))
             {
-                _config.arguments.Flush();
-                addCookies();
-                _config.arguments.Add("--print", "pre_process:%(album)s", "--skip-download", "--playlist-items", "1", _config.link);
+                _config.Arguments.Flush();
+                AddCookies();
+                _config.Arguments.Add("--print", "pre_process:%(album)s", "--skip-download", "--playlist-items", "1", _config.Link);
                 string name = string.Empty;
-                await StartProcess(_config, (_, args) => {name += args.Data;}).ConfigureAwait(false);
+                await StartProcess(_config, (_, args) => name += args.Data).ConfigureAwait(false);
 
                 LogDebug($"album name: {name}");
                 thumbnailOutName = thumbnailOutName.Replace("%(playlist)s", name, System.StringComparison.CurrentCulture);
             }
+
             LogDebug($"thumbnailOutName: |{thumbnailOutName}|");
-            _config.arguments.Flush();
+            _config.Arguments.Flush();
 
-            addCookies();
+            AddCookies();
 
-            _config.arguments.Add("--no-overwrites", "--playlist-items", "0", "--write-thumbnail", "--convert-thumbnails", "jpg", "-o", "thumbnail:", "-o", thumbnailOutName, _config.link);
+            _config.Arguments.Add("--no-overwrites", "--playlist-items", "0", "--write-thumbnail", "--convert-thumbnails", "jpg", "-o", "thumbnail:", "-o", thumbnailOutName, _config.Link);
 
             LogInfo("Downloading thumbnail");
             await StartProcess(_config).ConfigureAwait(false);
@@ -55,37 +52,36 @@ public class Youtube : YoumuBase {
         }
     }
 
-    private void constructArgs()
+    private void ConstructArgs()
     {
-        addCookies();
+        AddCookies();
 
-        addAudio();
+        AddAudio();
 
-        if (!addOptions("yt_options"))
+        if (!AddOptions("yt_options"))
         {
-            addOptions();
+            AddOptions();
         }
 
-        if (YRegex.YoutubePlaylist().IsMatch(_config.link))
+        if (YRegex.YoutubePlaylist().IsMatch(_config.Link))
         {
-            if (_config.dynamic["as_playlist"])
+            if (AttemptDict("as_playlist"))
             {
-                if (YRegex.YoutubeGeneratedPlaylist().IsMatch(_config.link))
+                if (YRegex.YoutubeGeneratedPlaylist().IsMatch(_config.Link))
                 {
-                    _config.arguments.Add("--no-embed-thumbnail");
+                    _config.Arguments.Add("--no-embed-thumbnail");
                 }
 
-                if (_config.dynamic["as_audio"])
+                if (AttemptDict("as_audio"))
                 {
                     // adding track numbers for the files
-                    _config.arguments.Add("--parse-metadata", "%(track_number,playlist_index)s/%(playlist_count)s:%(meta_track)s");
+                    _config.Arguments.Add("--parse-metadata", "%(track_number,playlist_index)s/%(playlist_count)s:%(meta_track)s");
                 }
 
-
-                if (!addOutputName("yt_playlist_name"))
+                if (!AddOutputName("yt_playlist_name"))
                 {
                     LogDebug("using default output name");
-                    if (!addOutputName())
+                    if (!AddOutputName())
                     {
                         LogWarning("No playlist name specified");
                     }
@@ -95,10 +91,10 @@ public class Youtube : YoumuBase {
             }
             else
             {
-                _config.link = _config.link.Split("&list=")[0];
-                if (!addOutputName("yt_video_name"))
+                _config.Link = _config.Link.Split("&list=")[0];
+                if (!AddOutputName("yt_video_name"))
                 {
-                    if (!addOutputName())
+                    if (!AddOutputName())
                     {
                         LogWarning("No video name specified");
                     }
@@ -107,15 +103,15 @@ public class Youtube : YoumuBase {
         }
         else
         {
-            if (!addOutputName("yt_video_name"))
+            if (!AddOutputName("yt_video_name"))
             {
-                if (!addOutputName())
+                if (!AddOutputName())
                 {
                     LogWarning("no video name specified");
                 }
             }
         }
 
-        addLink();
+        AddLink();
     }
 }
