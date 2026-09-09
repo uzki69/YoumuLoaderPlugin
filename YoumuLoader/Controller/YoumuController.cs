@@ -19,6 +19,7 @@ namespace YoumuLoader.Controller;
 public partial class YoumuController : ControllerBase // TODO: Task to update ytdlp
 {
     private const int IsPlaylistFlag = 1;
+    // TODO: use stdout instead.
     private const string TempFile = ".youmuloadertmp";
     private readonly ILogger<YoumuController> _logger;
 
@@ -377,6 +378,9 @@ public partial class YoumuController : ControllerBase // TODO: Task to update yt
 
     [GeneratedRegex("list=OLAK5uy")]
     private static partial Regex PlaylistGeneratedRegex();
+
+    [GeneratedRegex("^(http.://www\\.bilibili\\.com/)")]
+    private static partial Regex BiliBiliRegex();
 
     private static string? OptionsFillCookies(string? path, Options options)
     {
