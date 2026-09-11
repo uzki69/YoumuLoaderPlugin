@@ -6,7 +6,7 @@ on:
       - 'v*.*.*'
 
 permissions:
-  contents: write # Needed to create GitHub Releases and commit the updated manifest.json
+  contents: write
 
 jobs:
   release:
@@ -16,7 +16,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-deep: 0
+          fetch-depth: 0
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
@@ -29,6 +29,7 @@ jobs:
           CLEAN_VER="${GITHUB_REF_NAME#v}"
           
           DOT_COUNT=$(echo "$CLEAN_VER" | tr -cd '.' | wc -c)
+          
           if [ "$DOT_COUNT" -eq 2 ]; then
             ZIP_VER="${CLEAN_VER}.0"
           else
@@ -36,6 +37,8 @@ jobs:
           fi
 
           echo "ZIP_VERSION=${ZIP_VER}" >> $GITHUB_OUTPUT
+          echo "TAG=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          echo "BRANCH=release/${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
 
       - name: Run Publish Script
         run: |
@@ -44,38 +47,36 @@ jobs:
 
       - name: Run Manifest Update Script
         run: |
-          ./update-manifest.sh "${{ steps.version.outputs.ZIP_VERSION }}" "${{ github.repository }}" "${{ github.ref_name }}"
+          ./update-manifest.sh \
+            "${{ steps.version.outputs.ZIP_VERSION }}" \
+            "${{ github.repository }}" \
+            "${{ steps.version.outputs.TAG }}"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
+          tag_name: ${{ steps.version.outputs.TAG }}
+          name: Release ${{ steps.version.outputs.TAG }}
           files: versions/YoumuLoader_${{ steps.version.outputs.ZIP_VERSION }}.zip
+          generate_release_notes: true
 
-      - name: Commit Updated manifest.json
+      - name: Commit & Push to Release Branch
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # 1. Check if manifest.json was updated
-          if ! git diff --quiet manifest.json; then
-            # 2. Save modified manifest to stash
-            git stash push manifest.json
+          BRANCH="${{ steps.version.outputs.BRANCH }}"
 
-            # 3. Fetch latest origin/main state
-            git fetch origin main
-
-            # 4. Align local tree with origin/main without changing branches
-            git reset --soft origin/main
-
-            # 5. Restore modified manifest.json
-            git stash pop
-
-            # 6. Stage, commit, and push directly to main
-            git add manifest.json
-            git commit -m "chore: update manifest.json for ${{ github.ref_name }}"
-            git push origin HEAD:main
-          else
+          if git diff --quiet -- manifest.json; then
             echo "No changes detected in manifest.json"
+            exit 0
           fi
+
+          # Create (or reset) the release branch from the current state
+          git checkout -B "$BRANCH"
+
+          git add manifest.json
+          git commit -m "chore: update manifest.json for ${{ steps.version.outputs.TAG }}"
+          
+          # Push the release branch
+          git push origin "$BRANCH" --force

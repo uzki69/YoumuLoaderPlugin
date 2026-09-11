@@ -1,29 +1,32 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-if [ -n "$1" ]; then
-  version="$1"
-else
-  echo "version number:"
-  read version
+VERSION="${1:-}"
+if [ -z "$VERSION" ]; then
+  echo "Usage: $0 <version>"
+  exit 1
 fi
 
-dotnet publish -c Release
-name="YoumuLoader_$version"
-out="./versions/$name"
+PROJECT_DIR="YoumuLoader"          # ← adjust if needed
+DLL_NAME="YoumuLoader.dll"
+ZIP_NAME="YoumuLoader_${VERSION}.zip"   # keep consistent
 
-mkdir -p "$out"
-cp "YoumuLoader/bin/Release/net9.0/publish/YoumuLoader.dll" "meta.json" "$out/"
+dotnet publish -c Release -p:Version="$VERSION"
 
-# Update version and timestamp in meta.json
+OUT_DIR="./versions/${ZIP_NAME%.zip}"
+mkdir -p "$OUT_DIR"
+
+cp "${PROJECT_DIR}/bin/Release/net9.0/publish/${DLL_NAME}" meta.json "$OUT_DIR/"
+
 timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-jq --arg ver "$version" --arg ts "$timestamp" \
-   '.version = $ver | .timestamp = $ts' "$out/meta.json" > "$out/meta.tmp.json"
-mv "$out/meta.tmp.json" "$out/meta.json"
+jq --arg ver "$VERSION" --arg ts "$timestamp" \
+   '.version = $ver | .timestamp = $ts' "$OUT_DIR/meta.json" > "$OUT_DIR/meta.tmp.json"
+mv "$OUT_DIR/meta.tmp.json" "$OUT_DIR/meta.json"
 
-# Zip contents directly without parent folder wrapper
-cd "$out"
-zip -r "../$name.zip" ./*
-cd ../..
+(
+  cd "$OUT_DIR"
+  zip -r "../${ZIP_NAME}" ./*
+)
 
-rm -rf "$out"
+rm -rf "$OUT_DIR"
+echo "Created versions/${ZIP_NAME}"
