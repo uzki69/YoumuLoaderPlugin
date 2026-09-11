@@ -4,5 +4,4 @@ obj/
 .idea/
 artifacts
 run.sh
-publish.sh
 versions/
