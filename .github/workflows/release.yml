@@ -58,13 +58,19 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Stage the updated manifest
+          # Stage manifest.json
           git add manifest.json
           
-          # Commit only if there are pending changes, then push directly to main
+          # Only commit and push if changes exist
           if ! git diff --staged --quiet; then
             git commit -m "chore: update manifest.json for ${{ github.ref_name }}"
-            git push origin HEAD:main
+            
+            # Fetch latest remote changes and rebase onto default branch
+            git fetch origin ${{ github.event.repository.default_branch }}
+            git rebase origin/${{ github.event.repository.default_branch }}
+            
+            # Push back to default branch
+            git push origin HEAD:${{ github.event.repository.default_branch }}
           else
             echo "No changes detected in manifest.json"
           fi
