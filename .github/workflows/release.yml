@@ -1,0 +1,48 @@
+name: Build Plugin Artifact
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Extract Tag Version
+        id: version
+        run: |
+          # Clean tag: v1.0.0 -> 1.0.0
+          CLEAN_VER="${GITHUB_REF_NAME#v}"
+          
+          # 4-digit version for zip: 1.0.0 -> 1.0.0.0
+          DOT_COUNT=$(echo "$CLEAN_VER" | tr -cd '.' | wc -c)
+          if [ "$DOT_COUNT" -eq 2 ]; then
+            ZIP_VER="${CLEAN_VER}.0"
+          else
+            ZIP_VER="${CLEAN_VER}"
+          fi
+
+          echo "ZIP_VERSION=${ZIP_VER}" >> $GITHUB_OUTPUT
+
+      - name: Run Publish Script
+        run: |
+          chmod +x ./publish.sh
+          ./publish.sh "${{ steps.version.outputs.ZIP_VERSION }}"
+
+      - name: Upload Zip Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: YoumuLoader_${{ steps.version.outputs.ZIP_VERSION }}
+          path: versions/YoumuLoader_${{ steps.version.outputs.ZIP_VERSION }}.zip
