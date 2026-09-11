@@ -44,8 +44,11 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
             new PluginPageInfo
             {
                 Name = Name,
-                EmbeddedResourcePath = string.Format(CultureInfo.InvariantCulture, "{0}.Configuration.ConfigPage.html", GetType().Namespace)
+                EmbeddedResourcePath = $"{GetType().Namespace}.Configuration.ConfigPage.html",
+                EnableInMainMenu = true
             }
         ];
     }
+
+
 }
