@@ -23,10 +23,8 @@ jobs:
       - name: Extract Tag Version
         id: version
         run: |
-          # Clean tag: v1.0.0 -> 1.0.0
           CLEAN_VER="${GITHUB_REF_NAME#v}"
           
-          # 4-digit version for zip: 1.0.0 -> 1.0.0.0
           DOT_COUNT=$(echo "$CLEAN_VER" | tr -cd '.' | wc -c)
           if [ "$DOT_COUNT" -eq 2 ]; then
             ZIP_VER="${CLEAN_VER}.0"
@@ -45,4 +43,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: YoumuLoader_${{ steps.version.outputs.ZIP_VERSION }}
-          path: versions/YoumuLoader_${{ steps.version.outputs.ZIP_VERSION }}.zip
+          path: versions/YoumuLoader_${{ steps.version.outputs.ZIP_VERSION }}/*

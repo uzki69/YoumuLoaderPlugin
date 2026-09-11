@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e
 
-# Use first argument if passed (CI), otherwise prompt for input (local)
 if [ -n "$1" ]; then
   version="$1"
 else
@@ -11,14 +10,14 @@ fi
 
 dotnet publish -c Release
 name="YoumuLoader_$version"
-out="./versions"
-mkdir -p "$out/$name"
-cd "$out"
-cp "../YoumuLoader/bin/Release/net9.0/publish/YoumuLoader.dll" "../meta.json" "$name"
+out="./versions/$name"
 
-# Patch the version in meta.json inside the release folder
-jq --arg ver "$version" '.version = $ver' "$name/meta.json" > "$name/meta.tmp.json"
-mv "$name/meta.tmp.json" "$name/meta.json"
+# Create clean output directory
+mkdir -p "$out"
 
-7z a "$name.zip" "$name"
-rm -vr "$name"
+# Copy ONLY the target files into the directory
+cp "YoumuLoader/bin/Release/net9.0/publish/YoumuLoader.dll" "meta.json" "$out/"
+
+# Patch version inside meta.json
+jq --arg ver "$version" '.version = $ver' "$out/meta.json" > "$out/meta.tmp.json"
+mv "$out/meta.tmp.json" "$out/meta.json"
