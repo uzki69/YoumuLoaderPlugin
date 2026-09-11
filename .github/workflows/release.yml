@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write   # Required to create the PR
 
 jobs:
   release:
@@ -17,7 +16,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
@@ -39,7 +38,6 @@ jobs:
 
           echo "ZIP_VERSION=${ZIP_VER}" >> $GITHUB_OUTPUT
           echo "TAG=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
-          echo "BRANCH=release/${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
 
       - name: Run Publish Script
         run: |
@@ -58,39 +56,22 @@ jobs:
         with:
           tag_name: ${{ steps.version.outputs.TAG }}
           name: Release ${{ steps.version.outputs.TAG }}
-          files: versions/MyJellyfinPlugin_${{ steps.version.outputs.ZIP_VERSION }}.zip
+          files: versions/YoumuLoader_${{ steps.version.outputs.ZIP_VERSION }}.zip
           generate_release_notes: true
 
-      - name: Commit & Push to Release Branch + Create PR
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Commit and Push to main
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          BRANCH="${{ steps.version.outputs.BRANCH }}"
-          TAG="${{ steps.version.outputs.TAG }}"
 
           if git diff --quiet -- manifest.json; then
             echo "No changes detected in manifest.json"
             exit 0
           fi
 
-          # Create/reset the release branch
-          git checkout -B "$BRANCH"
-          git add manifest.json
-          git commit -m "chore: update manifest.json for $TAG"
-          
-          # Push the release branch
-          git push origin "$BRANCH" --force
+          git fetch origin main
+          git checkout -B main origin/main
 
-          # Create Pull Request (only if one doesn't already exist)
-          if ! gh pr list --head "$BRANCH" --base main --state open --json number | grep -q number; then
-            gh pr create \
-              --base main \
-              --head "$BRANCH" \
-              --title "chore: update manifest.json for $TAG" \
-              --body "Automated update of \`manifest.json\` after releasing **$TAG**.Please review and merge when ready."
-          else
-            echo "Pull Request already exists for $BRANCH"
-          fi
+          git add manifest.json
+          git commit -m "chore: update manifest.json for ${{ steps.version.outputs.TAG }}"
+          git push origin main
