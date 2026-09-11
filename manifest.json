@@ -1,0 +1,12 @@
+[
+  {
+    "guid": "042c195f-1304-4672-9a61-2a0c1ca56d9b",
+    "name": "YoumuLoader",
+    "description": "downloads using ytdlp - has support to youtube videos/playlists/generated-playlists",
+    "overview": "uses http requests to download videos using yt-dlp",
+    "owner": "uzki69",
+    "category": "General",
+    "imageUrl": "",
+    "versions": []
+  }
+]
