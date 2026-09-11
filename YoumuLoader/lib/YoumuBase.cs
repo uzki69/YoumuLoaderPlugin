@@ -1,6 +1,4 @@
-using System;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
@@ -158,6 +156,9 @@ public class YoumuBase(YoumuBaseConfiguration config, ILogger logger)
         LogInfo($"Video Downloaded: {_config.Link}");
     }
 
+    /// <summary>
+    /// Checks if it has the basics for downloading.
+    /// </summary>
     private bool AllChecks()
     {
         if (string.IsNullOrEmpty(_config.Executable))
@@ -166,6 +167,7 @@ public class YoumuBase(YoumuBaseConfiguration config, ILogger logger)
             return false;
         }
 
+        // case command does not need a directory
         if (AttemptDict("no_directory") == null)
         {
             if (string.IsNullOrEmpty(_config.WorkingDir))
@@ -175,13 +177,14 @@ public class YoumuBase(YoumuBaseConfiguration config, ILogger logger)
             }
         }
 
+        // case command does not need a link.
         if (AttemptDict("no_link") == null)
-        {
-            if (string.IsNullOrEmpty(_config.Link))
-            {
-                LogError("_config.link was empty");
-                return false;
-            }
+        { 
+          if (string.IsNullOrEmpty(_config.Link))
+          {
+              LogError("_config.link was empty");
+              return false;
+          }
         }
 
         return true;

@@ -29,6 +29,15 @@ public class Options
     }
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="Options"/> class.
+    /// </summary>
+    /// <param name="option">An option</param>
+    public Options(string option)
+    {
+        _options = [option];
+    }
+
+    /// <summary>
     /// Gets or sets your custom flag.
     /// </summary>
     public int Flags { get; set; } = 0;
