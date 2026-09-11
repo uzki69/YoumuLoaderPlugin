@@ -58,17 +58,13 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Switch to main branch and pull latest changes to avoid conflicts
-          git checkout main
-          git pull origin main
-
-          # Stage and commit updated manifest
+          # Stage the updated manifest
           git add manifest.json
           
-          # Only commit if there are actual changes
+          # Commit only if there are pending changes, then push directly to main
           if ! git diff --staged --quiet; then
             git commit -m "chore: update manifest.json for ${{ github.ref_name }}"
-            git push origin main
+            git push origin HEAD:main
           else
             echo "No changes detected in manifest.json"
           fi
