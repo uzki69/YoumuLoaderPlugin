@@ -57,20 +57,25 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Stage manifest.json
-          git add manifest.json
-          
-          # Only commit and push if changes exist
-          if ! git diff --staged --quiet; then
+
+          # 1. Check if manifest.json was updated
+          if ! git diff --quiet manifest.json; then
+            # 2. Save modified manifest to stash
+            git stash push manifest.json
+
+            # 3. Fetch latest origin/main state
+            git fetch origin main
+
+            # 4. Align local tree with origin/main without changing branches
+            git reset --soft origin/main
+
+            # 5. Restore modified manifest.json
+            git stash pop
+
+            # 6. Stage, commit, and push directly to main
+            git add manifest.json
             git commit -m "chore: update manifest.json for ${{ github.ref_name }}"
-            
-            # Fetch latest remote changes and rebase onto default branch
-            git fetch origin ${{ github.event.repository.default_branch }}
-            git rebase origin/${{ github.event.repository.default_branch }}
-            
-            # Push back to default branch
-            git push origin HEAD:${{ github.event.repository.default_branch }}
+            git push origin HEAD:main
           else
             echo "No changes detected in manifest.json"
           fi
