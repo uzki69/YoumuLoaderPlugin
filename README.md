@@ -60,5 +60,3 @@ RUN apt-get update && apt-get install -y unzip \
         && ln -s /usr/lib/jellyfin-ffmpeg/ffprobe /usr/bin \
         && apt-get clean && rm -rf /var/lib/apt/lists/*
 ```
-
-It fucks up with the autoupdate but I don't have any other idea, anyway it restart faster now
