@@ -11,43 +11,52 @@
                 <form id="TemplateConfigForm">
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="VideoPath">Video Path</label>
-                        <input id="VideoPath" name="VideoPath" type="text" is="emby-input" />
+                        <select id="VideoPath" name="VideoPath" is="emby-select" class="emby-select emby-select-withcolor"></select>
                         <div class="fieldDescription">Where videos are downloaded</div>
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="MusicPath">Music Path</label>
-                        <input id="MusicPath" name="MusicPath" type="text" is="emby-input" />
+                        <select id="MusicPath" name="MusicPath" is="emby-select" class="emby-select emby-select-withcolor"></select>
                         <div class="fieldDescription">Where musics are downloaded</div>
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="CookiesPath">Cookies Path</label>
-                        <input id="CookiesPath" name="CookiesPath" type="text" is="emby-input" />
-                        <div class="fieldDescription">Where youtube cookies are found</div>
+                        <input id="CookiesPath" name="CookiesPath" type="text" is="emby-input" placeholder="/config/cookies.txt" />
+                        <div class="fieldDescription">Path to a Netscape-format cookies.txt file used by yt-dlp.</div>
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="YtdlpPath">Yt-dlp Path</label>
-                        <input id="YtdlpPath" name="YtdlpPath" type="text" is="emby-input" />
-                        <div class="fieldDescription">Where yt-dlp are found</div>
+                        <input id="YtdlpPath" name="YtdlpPath" type="text" is="emby-input" placeholder="/usr/bin/yt-dlp" />
+                        <div class="fieldDescription">Path to the yt-dlp executable.</div>
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="YtdlpOptions">Yt-dlp Options</label>
-                        <input id="YtdlpOptions" name="YtdlpOptions" type="text" is="emby-input" />
-                        <div class="fieldDescription">Command that goes after yt-dlp binary should be separated by semicolons</div>
+                        <input id="YtdlpOptions" name="YtdlpOptions" type="text" is="emby-input" placeholder="--embed-subs; --all-subs; --no-overwrites; --embed-metadata; --embed-thumbnail" />
+                        <div class="fieldDescription">Semicolon-separated yt-dlp command line options.</div>
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="FileName">File name</label>
-                        <input id="FileName" name="FileName" type="text" is="emby-input" />
-                        <div class="fieldDescription">output file name for yt-dlp, only used when in a video / music</div>
+                        <input id="FileName" name="FileName" type="text" is="emby-input" placeholder="%(uploader)s/%(album,title)s/%(title)s.%(ext)s" />
+                        <div class="fieldDescription">Output template for a single video/track (yt-dlp -o syntax).</div>
+                        <div id="FileNamePreview"></div>
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="Playlist">Playlist</label>
-                        <input id="Playlist" name="Playlist" type="text" is="emby-input" />
-                        <div class="fieldDescription">output playlist for yt-dlp, only used when in a playlist</div>
+                        <input id="Playlist" name="Playlist" type="text" is="emby-input" placeholder="%(playlist_uploader|.)s/%(album,playlist)s/%(track_number,playlist_index)s. %(track,title)s.%(ext)s" />
+                        <div class="fieldDescription">Output template used when downloading a playlist.</div>
+                        <div id="PlaylistPreview"></div>
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="Thumbnail">Thumbnail</label>
-                        <input id="Thumbnail" name="Thumbnail" type="text" is="emby-input" />
-                        <div class="fieldDescription">output directory for thumb, only used when is playlist</div>
+                        <input id="Thumbnail" name="Thumbnail" type="text" is="emby-input" placeholder="%(playlist_uploader|.)s/%(playlist)s/cover" />
+                        <div class="fieldDescription">Output template used for playlist cover thumbnails.</div>
+                        <div class="fieldDescription" style="opacity:.75;font-style:italic;">Heads up: a planned update will replace %(playlist)s here with the correct album name, since it can currently pick up the wrong one. No action needed yet, just a heads-up for later.</div>
+                        <div id="ThumbnailPreview"></div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel">Common output template fields</label>
+                        <div class="fieldDescription">Click a field to insert it into the box you last focused above. Not the full list, see <a is="emby-linkbutton" class="button-link emby-button" target="_blank" href="https://github.com/yt-dlp/yt-dlp#output-template">yt-dlp's docs</a> for everything available.</div>
+                        <div id="YtdlpFieldChips"></div>
                     </div>
                     <div>
                         <button is="emby-button" type="submit" class="raised button-submit block emby-button">
@@ -62,10 +71,174 @@
                 pluginUniqueId: '042c195f-1304-4672-9a61-2a0c1ca56d9b'
             };
 
+            // Fields confirmed from yt-dlp's own "OUTPUT TEMPLATE" documentation:
+            // https://github.com/yt-dlp/yt-dlp#output-template
+            var YTDLP_FIELDS = [
+                'id', 'title', 'fulltitle', 'ext', 'alt_title', 'description', 'display_id',
+                'uploader', 'uploader_id', 'uploader_url', 'license', 'creators', 'creator',
+                'timestamp', 'upload_date', 'release_timestamp', 'release_date', 'release_year',
+                'modified_timestamp', 'modified_date', 'channel', 'channel_id', 'channel_url',
+                'channel_follower_count', 'channel_is_verified', 'location', 'duration',
+                'duration_string', 'view_count', 'concurrent_view_count', 'like_count',
+                'dislike_count', 'repost_count', 'average_rating', 'comment_count', 'save_count',
+                'age_limit', 'live_status', 'is_live', 'was_live', 'playable_in_embed',
+                'availability', 'media_type', 'start_time', 'end_time', 'extractor',
+                'extractor_key', 'epoch', 'autonumber', 'video_autonumber', 'n_entries',
+                'playlist_id', 'playlist_title', 'playlist', 'playlist_count', 'playlist_index',
+                'playlist_autonumber', 'playlist_uploader', 'playlist_uploader_id', 'playlist_channel',
+                // Standard yt-dlp audio/music metadata fields (used in your FileName/Playlist
+                // defaults below). These are further down the same doc page than the fetch
+                // above reached, listed here from general yt-dlp knowledge rather than the
+                // truncated fetch -- double check against the docs link if in doubt.
+                'album', 'album_type', 'album_artist', 'artist', 'artists', 'genre', 'genres',
+                'composer', 'composers', 'track', 'track_number', 'track_id', 'disc_number'
+            ];
+
+            // A short list of the most commonly used fields, shown as clickable chips.
+            var YTDLP_COMMON_CHIPS = [
+                'title', 'ext', 'uploader', 'album', 'track', 'track_number',
+                'playlist', 'playlist_index', 'upload_date', 'id'
+            ];
+
+            function escapeHtml(str) {
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+            }
+
+            // Pulls the leading identifier out of a template field expression,
+            // e.g. "release_date>%Y" -> "release_date", "playlist_uploader|." -> "playlist_uploader".
+            function baseFieldName(token) {
+                var m = token.trim().match(/^[a-zA-Z_][a-zA-Z0-9_]*/);
+                return m ? m[0] : '';
+            }
+
+            // Renders a yt-dlp -o/-P style template string with each %(field)s
+            // token colorized: green if the field is recognized, red if not.
+            // Styles are applied inline (not via a stylesheet) since Jellyfin's
+            // plugin page loader only injects the page div, not <head>/<style>.
+            function highlightTemplate(raw) {
+                if (!raw) {
+                    return '<span style="opacity:.6;">(empty)</span>';
+                }
+
+                var escaped = escapeHtml(raw);
+
+                return escaped.replace(/%\(([^)]*)\)/g, function (match, inner) {
+                    var isValid = inner === '' || inner.split(',').every(function (alt) {
+                        var name = baseFieldName(alt);
+                        return name === '' || YTDLP_FIELDS.indexOf(name) !== -1;
+                    });
+
+                    var style = isValid
+                        ? 'color:#6fcf6f;font-weight:600;'
+                        : 'color:#ff6b6b;font-weight:600;text-decoration:underline wavy;';
+
+                    return '%(<span style="' + style + '">' + inner + '</span>)';
+                });
+            }
+
+            var lastFocusedTemplateField = 'FileName';
+
+            function wireTemplatePreview(inputId, previewId) {
+                var input = document.querySelector('#' + inputId);
+                var preview = document.querySelector('#' + previewId);
+
+                preview.style.cssText = 'display:block;font-family:monospace;font-size:.85em;' +
+                    'padding:.5em .75em;margin-top:.35em;border-radius:4px;' +
+                    'background-color:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.15);' +
+                    'color:#eee;word-break:break-all;';
+
+                function refresh() {
+                    preview.innerHTML = highlightTemplate(input.value);
+                }
+
+                input.addEventListener('input', refresh);
+                input.addEventListener('focus', function () {
+                    lastFocusedTemplateField = inputId;
+                });
+
+                refresh();
+                return refresh;
+            }
+
+            function insertFieldToken(fieldName) {
+                var input = document.querySelector('#' + lastFocusedTemplateField);
+                var token = '%(' + fieldName + ')s';
+                var start = input.selectionStart != null ? input.selectionStart : input.value.length;
+                var end = input.selectionEnd != null ? input.selectionEnd : input.value.length;
+
+                input.value = input.value.slice(0, start) + token + input.value.slice(end);
+                input.focus();
+                input.setSelectionRange(start + token.length, start + token.length);
+                input.dispatchEvent(new Event('input'));
+            }
+
+            function renderFieldChips() {
+                var container = document.querySelector('#YtdlpFieldChips');
+                container.style.cssText = 'display:flex;flex-wrap:wrap;gap:.4em;margin-top:.5em;';
+
+                container.innerHTML = YTDLP_COMMON_CHIPS.map(function (field) {
+                    return '<button type="button" class="ytdlpFieldChip" data-field="' + field + '" ' +
+                        'style="font-family:monospace;font-size:.8em;padding:.25em .6em;border-radius:12px;' +
+                        'border:1px solid rgba(255,255,255,.3);background-color:rgba(255,255,255,.05);' +
+                        'color:inherit;cursor:pointer;">%(' + field + ')s</button>';
+                }).join('');
+
+                container.querySelectorAll('.ytdlpFieldChip').forEach(function (chip) {
+                    chip.addEventListener('click', function () {
+                        insertFieldToken(chip.getAttribute('data-field'));
+                    });
+                    chip.addEventListener('mouseenter', function () {
+                        chip.style.backgroundColor = 'rgba(255,255,255,.15)';
+                    });
+                    chip.addEventListener('mouseleave', function () {
+                        chip.style.backgroundColor = 'rgba(255,255,255,.05)';
+                    });
+                });
+            }
+
+            // Builds <option> lists using the actual folder paths behind each
+            // library (library.Locations), not the library's ItemId/Name.
+            // A library can be made of more than one folder, so every path
+            // gets its own option, using the full path as both value and label.
+            function loadLibraries() {
+                return ApiClient.getVirtualFolders().then(function (result) {
+                    var selects = [
+                        document.querySelector('#VideoPath'),
+                        document.querySelector('#MusicPath'),
+                    ];
+
+                    var optionsHtml = result.map(function (library) {
+                        return library.Locations.map(function (path) {
+                            return '<option value="' + path + '">' + path + '</option>';
+                        }).join('');
+                    }).join('');
+
+                    selects.forEach(function (element) {
+                        element.innerHTML = optionsHtml;
+                    });
+                });
+            }
+
             document.querySelector('#TemplateConfigPage')
                 .addEventListener('pageshow', function() {
                     Dashboard.showLoadingMsg();
-                    ApiClient.getPluginConfiguration(TemplateConfig.pluginUniqueId).then(function (config) {
+
+                    renderFieldChips();
+                    var refreshFileName = wireTemplatePreview('FileName', 'FileNamePreview');
+                    var refreshPlaylist = wireTemplatePreview('Playlist', 'PlaylistPreview');
+                    var refreshThumbnail = wireTemplatePreview('Thumbnail', 'ThumbnailPreview');
+
+                    Promise.all([
+                        ApiClient.getPluginConfiguration(TemplateConfig.pluginUniqueId),
+                        loadLibraries()
+                    ]).then(function (results) {
+                        // results[0] is the plugin config, results[1] is the
+                        // (already-applied) loadLibraries() result.
+                        var config = results[0];
+
                         document.querySelector('#VideoPath').value = config.VideoPath;
                         document.querySelector('#CookiesPath').value = config.CookiesPath;
                         document.querySelector('#YtdlpPath').value = config.YtdlpPath;
@@ -74,6 +247,13 @@
                         document.querySelector('#Playlist').value = config.Playlist;
                         document.querySelector('#MusicPath').value = config.MusicPath;
                         document.querySelector('#Thumbnail').value = config.Thumbnail;
+
+                        // The fields above were just set programmatically, which
+                        // doesn't fire 'input', so refresh the previews manually.
+                        refreshFileName();
+                        refreshPlaylist();
+                        refreshThumbnail();
+
                         Dashboard.hideLoadingMsg();
                     });
                 });
