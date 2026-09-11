@@ -12,12 +12,18 @@ dotnet publish -c Release
 name="YoumuLoader_$version"
 out="./versions/$name"
 
-# Create clean output directory
 mkdir -p "$out"
-
-# Copy ONLY the target files into the directory
 cp "YoumuLoader/bin/Release/net9.0/publish/YoumuLoader.dll" "meta.json" "$out/"
 
-# Patch version inside meta.json
-jq --arg ver "$version" '.version = $ver' "$out/meta.json" > "$out/meta.tmp.json"
+# Update version and timestamp in meta.json
+timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+jq --arg ver "$version" --arg ts "$timestamp" \
+   '.version = $ver | .timestamp = $ts' "$out/meta.json" > "$out/meta.tmp.json"
 mv "$out/meta.tmp.json" "$out/meta.json"
+
+# Zip contents directly without parent folder wrapper
+cd "$out"
+zip -r "../$name.zip" ./*
+cd ../..
+
+rm -rf "$out"

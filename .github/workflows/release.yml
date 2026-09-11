@@ -1,19 +1,22 @@
-name: Build Plugin Artifact
+name: Build and Release Plugin
 
 on:
   push:
     tags:
       - 'v*.*.*'
 
-permissions: {}
+permissions:
+  contents: write # Needed to create GitHub Releases and commit the updated manifest.json
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-deep: 0
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
@@ -36,11 +39,36 @@ jobs:
 
       - name: Run Publish Script
         run: |
-          chmod +x ./publish.sh
+          chmod +x ./publish.sh ./update-manifest.sh
           ./publish.sh "${{ steps.version.outputs.ZIP_VERSION }}"
 
-      - name: Upload Zip Artifact
-        uses: actions/upload-artifact@v4
+      - name: Run Manifest Update Script
+        run: |
+          ./update-manifest.sh "${{ steps.version.outputs.ZIP_VERSION }}" "${{ github.repository }}" "${{ github.ref_name }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: YoumuLoader_${{ steps.version.outputs.ZIP_VERSION }}
-          path: versions/YoumuLoader_${{ steps.version.outputs.ZIP_VERSION }}/*
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          files: versions/YoumuLoader_${{ steps.version.outputs.ZIP_VERSION }}.zip
+
+      - name: Commit Updated manifest.json
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Switch to main branch and pull latest changes to avoid conflicts
+          git checkout main
+          git pull origin main
+
+          # Stage and commit updated manifest
+          git add manifest.json
+          
+          # Only commit if there are actual changes
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: update manifest.json for ${{ github.ref_name }}"
+            git push origin main
+          else
+            echo "No changes detected in manifest.json"
+          fi
