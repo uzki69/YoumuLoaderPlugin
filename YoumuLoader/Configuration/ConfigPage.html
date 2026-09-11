@@ -50,7 +50,9 @@
                         <label class="inputLabel inputLabelUnfocused" for="Thumbnail">Thumbnail</label>
                         <input id="Thumbnail" name="Thumbnail" type="text" is="emby-input" placeholder="%(playlist_uploader|.)s/%(playlist)s/cover" />
                         <div class="fieldDescription">Output template used for playlist cover thumbnails.</div>
-                        <div class="fieldDescription" style="opacity:.75;font-style:italic;">Heads up: a planned update will replace %(playlist)s here with the correct album name, since it can currently pick up the wrong one. No action needed yet, just a heads-up for later.</div>
+                        <div class="fieldDescription" style="opacity:.75;font-style:italic;">
+                            Note: Yt-dlp implementation does not count for %(playlist)s in generated playlists so here is changed for it to work.
+                        </div>
                         <div id="ThumbnailPreview"></div>
                     </div>
                     <div class="inputContainer">
@@ -181,7 +183,7 @@
 
                 container.innerHTML = YTDLP_COMMON_CHIPS.map(function (field) {
                     return '<button type="button" class="ytdlpFieldChip" data-field="' + field + '" ' +
-                        'style="font-family:monospace;font-size:.8em;padding:.25em .6em;border-radius:12px;' +
+                        'style="font-family:monospace;font-size:1.2em;padding:.25em .6em;border-radius:12px;' +
                         'border:1px solid rgba(255,255,255,.3);background-color:rgba(255,255,255,.05);' +
                         'color:inherit;cursor:pointer;">%(' + field + ')s</button>';
                 }).join('');
